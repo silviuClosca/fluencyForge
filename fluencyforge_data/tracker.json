@@ -1,0 +1,68 @@
+{
+  "2025-11-01": {
+    "reading": false,
+    "listening": false,
+    "speaking": false,
+    "writing": false
+  },
+  "2025-11-05": {
+    "reading": false,
+    "listening": false,
+    "speaking": false,
+    "writing": false
+  },
+  "2025-11-17": {
+    "reading": true,
+    "listening": true,
+    "speaking": true,
+    "writing": false
+  },
+  "2025-11-18": {
+    "reading": true,
+    "listening": true,
+    "speaking": true,
+    "writing": false
+  },
+  "2025-11-19": {
+    "reading": false,
+    "listening": false,
+    "speaking": false,
+    "writing": false
+  },
+  "2025-11-20": {
+    "reading": false,
+    "listening": false,
+    "speaking": false,
+    "writing": false
+  },
+  "2025-11-21": {
+    "reading": false,
+    "listening": false,
+    "speaking": false,
+    "writing": false
+  },
+  "2025-11-22": {
+    "reading": false,
+    "listening": false,
+    "speaking": false,
+    "writing": false
+  },
+  "2025-11-23": {
+    "reading": false,
+    "listening": false,
+    "speaking": false,
+    "writing": false
+  },
+  "2025-11-24": {
+    "reading": true,
+    "listening": true,
+    "speaking": true,
+    "writing": true
+  },
+  "2025-11-25": {
+    "reading": false,
+    "listening": false,
+    "speaking": true,
+    "writing": false
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "2025-11": {
+    "month": "2025-11",
+    "goals": [
+      "G1 Test 12",
+      "Goal2",
+      "goasl"
+    ],
+    "completed": [
+      true,
+      true,
+      true
+    ],
+    "notes": "",
+    "archived": false,
+    "categories": [
+      "General",
+      "General",
+      "General"
+    ],
+    "reflections": [
+      "r12\nsdasdsadsadsa",
+      "șaldmjsajdksljdsajdsajd\ndsadsadsadas",
+      "dasdsadsadsadasd\ndsadsadsadasd"
+    ],
+    "subtasks": [
+      [
+        "dasdsadsadsad",
+        ""
+      ],
+      [
+        "s21asdsad",
+        "s22dasdasd",
+        "dasdsadasdas"
+      ],
+      [
+        "dsadsadsad",
+        "dsadsadas"
+      ]
+    ],
+    "subtasks_done": [
+      [
+        false,
+        false
+      ],
+      [
+        false,
+        true,
+        false
+      ],
+      [
+        false,
+        false
+      ]
+    ],
+    "created_at": [
+      "2025-11-17T17:19:16",
+      "2025-11-17T17:31:22",
+      "2025-11-17T16:32:19"
+    ],
+    "completed_at": [
+      "2025-11-17T17:07:41",
+      "2025-11-17T18:55:23",
+      "2025-11-17T16:32:23"
+    ],
+    "last_saved_by": "dashboard_view"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "tasks": [
+    "Read 10 word per day",
+    "Listen 10 minutes of NNihongo con tonigo",
+    "Repeat 10 words",
+    "Write 10 kana"
+  ],
+  "show_on_startup": true
+}

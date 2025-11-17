@@ -1,0 +1,47 @@
+{
+  "2025-11": {
+    "month": "2025-11",
+    "goals": [
+      "aaaaaaaaaaaaa",
+      "bbbbbbbbbbbbbbbbbbbb",
+      ""
+    ],
+    "completed": [
+      false,
+      false,
+      false
+    ],
+    "notes": "",
+    "archived": false,
+    "categories": [
+      "General",
+      "General",
+      "General"
+    ],
+    "reflections": [
+      "aaaaaaaaaaaaaa",
+      "",
+      ""
+    ],
+    "subtasks": [
+      [],
+      [],
+      []
+    ],
+    "subtasks_done": [
+      [],
+      [],
+      []
+    ],
+    "created_at": [
+      "2025-11-17T17:19:16",
+      "2025-11-17T16:31:22",
+      "2025-11-17T16:32:19"
+    ],
+    "completed_at": [
+      "2025-11-17T17:07:41",
+      "",
+      "2025-11-17T16:32:23"
+    ]
+  }
+}
