@@ -354,18 +354,21 @@ class RadarView(QWidget):
         main_layout = QHBoxLayout(self)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Single-column layout: month selector + save + interactive chart + values
-        # + balance + trends + reminder banner.
+        # Single-column layout: header row (month selector + save + balance),
+        # interactive chart, values + trends + reminder banner.
         right_layout = QVBoxLayout()
         # Extremely tight vertical spacing so the chart and text feel connected
         right_layout.setSpacing(0)
-        # Center contents horizontally so the chart doesn't "pull" the card
-        # wider than it needs to be.
-        right_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        # Keep contents top-aligned; we'll center the chart itself explicitly so
+        # the header row can span the full card width.
+        right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         month_row = QHBoxLayout()
         month_row.setContentsMargins(0, 0, 0, 0)
-        month_row.addWidget(QLabel("Month", self))
+        # Label shows the current month as a 3-letter abbreviation with a dot
+        # (e.g. "Nov.") instead of the generic "Month" text.
+        self.month_label = QLabel("", self)
+        month_row.addWidget(self.month_label)
         self.month_combo = QComboBox(self)
         # Let the combo size itself to its contents instead of stretching.
         self.month_combo.setSizeAdjustPolicy(
@@ -379,68 +382,54 @@ class RadarView(QWidget):
             "QComboBox:focus { border-color: #4a90e2; }"
         )
         self._populate_months()
+        self._update_month_label_prefix()
         month_row.addWidget(self.month_combo)
 
-        # Push the save button to the right
-        month_row.addStretch(1)
         self.save_button = QPushButton("Save", self)
         self.save_button.setStyleSheet(
             "QPushButton { border: 1px solid #d0d7de; border-radius: 4px; padding: 4px 10px; }"
             "QPushButton:hover { background-color: rgba(255, 255, 255, 40); }"
         )
         month_row.addWidget(self.save_button)
+
+        # Balance index text on the same header row, right-aligned so the row
+        # spans the full width of the Fluency Snapshot card.
+        month_row.addStretch(1)
+        self.balance_label = QLabel("Balance Index: -", self)
+        self.balance_label.setContentsMargins(0, 0, 0, 0)
+        self.balance_label.setMargin(0)
+        month_row.addWidget(self.balance_label, 0, Qt.AlignmentFlag.AlignRight)
         right_layout.addLayout(month_row)
         self.chart = InteractiveRadarWidget(self)
         # Slightly smaller fixed height so the text sits closer to the chart.
         self.chart.setFixedHeight(220)
         # Limit the chart's width so it doesn't expand to fill the entire
-        # dashboard card, which otherwise creates a very wide empty band to
-        # the right on large windows.
-        self.chart.setMaximumWidth(260)
-        right_layout.addWidget(self.chart)
+        # dashboard card, but give it enough horizontal space for axis labels
+        # on the left/right to be fully visible.
+        self.chart.setMinimumWidth(250)
+        self.chart.setMaximumWidth(420)
 
-        # Compact metrics block under the chart: values + balance + trends
-        metrics_layout = QVBoxLayout()
-        metrics_layout.setContentsMargins(0, 0, 0, 0)
-        # No extra space between rows: appears as three consecutive lines
-        metrics_layout.setSpacing(0)
-        metrics_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # Place the chart on its own row and center it horizontally.
+        chart_row = QHBoxLayout()
+        chart_row.setContentsMargins(0, 0, 0, 0)
+        chart_row.addWidget(self.chart, 0, Qt.AlignmentFlag.AlignHCenter)
+        right_layout.addLayout(chart_row)
 
-        # Value labels row, packed tightly on the left
-        values_row = QHBoxLayout()
-        values_row.setContentsMargins(0, 0, 0, 0)
-        values_row.setSpacing(12)
-        values_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
+        # Metrics widgets (value labels, trend text, reminder) are still
+        # created for internal analysis, but no longer added under the chart in
+        # this compact dashboard view.
         self.reading_label = QLabel("", self)
         self.listening_label = QLabel("", self)
         self.speaking_label = QLabel("", self)
         self.writing_label = QLabel("", self)
 
-        values_row.addWidget(self.reading_label, 0, Qt.AlignmentFlag.AlignLeft)
-        values_row.addWidget(self.listening_label, 0, Qt.AlignmentFlag.AlignLeft)
-        values_row.addWidget(self.speaking_label, 0, Qt.AlignmentFlag.AlignLeft)
-        values_row.addWidget(self.writing_label, 0, Qt.AlignmentFlag.AlignLeft)
-        values_row.addStretch(1)
-
-        metrics_layout.addLayout(values_row)
-
-        self.balance_label = QLabel("Balance Index: -", self)
-        self.balance_label.setContentsMargins(0, 0, 0, 0)
-        self.balance_label.setMargin(0)
-        metrics_layout.addWidget(self.balance_label)
-
         self.trend_label = QLabel("No trend data yet", self)
         self.trend_label.setContentsMargins(0, 0, 0, 0)
         self.trend_label.setMargin(0)
-        metrics_layout.addWidget(self.trend_label)
-
-        right_layout.addLayout(metrics_layout)
 
         self.reminder_label = QLabel("", self)
         self.reminder_label.setContentsMargins(0, 0, 0, 0)
         self.reminder_label.setMargin(0)
-        right_layout.addWidget(self.reminder_label)
 
         main_layout.addLayout(right_layout, 1)
 
@@ -461,6 +450,17 @@ class RadarView(QWidget):
 
     def _current_month_str(self) -> str:
         return datetime.now().strftime("%Y-%m")
+
+    def _update_month_label_prefix(self) -> None:
+        """Update the header label to show the current month as 'Mon.'"""
+
+        text = self.month_combo.currentText() or self._current_month_str()
+        try:
+            dt = datetime.strptime(text, "%Y-%m")
+            prefix = dt.strftime("%b")
+        except ValueError:
+            prefix = "Month"
+        self.month_label.setText(prefix)
 
     def _populate_months(self) -> None:
         current = self._current_month_str()
@@ -503,6 +503,7 @@ class RadarView(QWidget):
         self._update_analysis()
 
     def _on_month_changed(self, _text: str) -> None:
+        self._update_month_label_prefix()
         self._load_current_month_values()
 
     def _on_save(self) -> None:

@@ -12,6 +12,7 @@ class CircleIndicator(QWidget):
         super().__init__(parent)
         self._completed = completed
         self._size = size
+        self._hover = False
         self.setMinimumSize(size, size)
         self.setMaximumSize(size, size)
         # Make it clear this is interactive wherever it is used.
@@ -33,20 +34,34 @@ class CircleIndicator(QWidget):
             hint = QPainter.Antialiasing  # type: ignore[attr-defined]
         painter.setRenderHint(hint)
 
-        border_color = QColor("#7CC9A3")
+        # Ring colors: light for incomplete, stronger green for completed.
+        empty_ring_color = QColor("#BEEAD3")
+        completed_ring_color = QColor("#7CC9A3")
 
         rect = self.rect().adjusted(1, 1, -1, -1)
 
-        # Draw circle outline only
-        pen = QPen(border_color)
-        pen.setWidth(2)
+        # Subtle hover background so the circle responds visually to the mouse.
+        if self._hover:
+            # Soft light green highlight under both states.
+            hover_bg = QColor("#BEEAD3")
+            hover_bg.setAlpha(120)
+            painter.setBrush(hover_bg)
+        else:
+            painter.setBrush(QColor(0, 0, 0, 0))
+
+        # Draw circle outline: thin and light when incomplete, thicker and
+        # stronger green once completed.
+        ring_color = completed_ring_color if self._completed else empty_ring_color
+        pen = QPen(ring_color)
+        pen.setWidth(2 if self._completed else 1)
         painter.setPen(pen)
-        painter.setBrush(QColor(0, 0, 0, 0))
         painter.drawEllipse(rect)
 
         # Draw a green checkmark when completed
         if self._completed:
-            pen = QPen(border_color)
+            # Use the original green for the checkmark so it stays readable.
+            check_color = QColor("#7CC9A3")
+            pen = QPen(check_color)
             pen.setWidth(2)
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
@@ -62,6 +77,22 @@ class CircleIndicator(QWidget):
 
             painter.drawLine(int(x1), int(y1), int(x2), int(y2))
             painter.drawLine(int(x2), int(y2), int(x3), int(y3))
+
+    def enterEvent(self, event) -> None:  # type: ignore[override]
+        self._hover = True
+        self.update()
+        try:
+            super().enterEvent(event)
+        except Exception:
+            pass
+
+    def leaveEvent(self, event) -> None:  # type: ignore[override]
+        self._hover = False
+        self.update()
+        try:
+            super().leaveEvent(event)
+        except Exception:
+            pass
 
     def mousePressEvent(self, event) -> None:  # type: ignore[override]
         self.clicked.emit()

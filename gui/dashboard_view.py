@@ -152,6 +152,9 @@ class DashboardView(QWidget):
         layout = frame.layout()  # type: ignore[assignment]
 
         radar = RadarView(self)
+        # Let the RadarView take the full card width; the chart itself is
+        # centered inside its own layout so the header row can span edge to
+        # edge above it.
         layout.addWidget(radar)
 
         return frame

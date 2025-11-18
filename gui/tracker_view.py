@@ -62,26 +62,19 @@ class TrackerView(QWidget):
         monthly_layout.addWidget(header)
         monthly_layout.setAlignment(header, Qt.AlignmentFlag.AlignLeft)
 
-        # Main content row: monthly grid on the left, analytics+legend column
-        # on the right.
+        # Main content row: monthly grid on the left, analytics summary card on
+        # the right.
         content_row = QHBoxLayout()
 
-        # Monthly grid: layout-based (no table), similar to weekly dashboard
-        # preview. We keep the grid's natural width and align it to the left so
-        # columns don't stretch to fill the entire container.
+        # Monthly grid container: a vertical stack of week "cards", each with
+        # its own compact inner grid.
         self.grid_container = QWidget(self)
         self.grid_container.setSizePolicy(
             QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred
         )
-        self.grid_layout = QGridLayout(self.grid_container)
+        self.grid_layout = QVBoxLayout(self.grid_container)
         self.grid_layout.setContentsMargins(0, 0, 0, 0)
-        # Tighter spacing so the monthly calendar columns sit closer together.
-        self.grid_layout.setHorizontalSpacing(12)
-        # Reduced vertical spacing so day numbers sit closer to the circle
-        # rows and the weekly bands are more compact.
-        self.grid_layout.setVerticalSpacing(2)
-        # Column 0 (emoji) should stay narrow; remaining columns get the space.
-        self.grid_layout.setColumnStretch(0, 0)
+        self.grid_layout.setSpacing(6)
         content_row.addWidget(self.grid_container)
 
         # Right column: analytics summary card (multi-line text) with a soft
@@ -178,44 +171,78 @@ class TrackerView(QWidget):
         # Compute weekday of the first of the month (0=Monday .. 6=Sunday).
         first_weekday, _ = monthrange(year, month_num)
 
-        # Fill the calendar grid week by week. Each week consumes
-        # (len(skills) + 1) rows: 1 header row + 1 row per skill.
-        current_day = 1
+        # Build a vertical stack of week cards. Each card has its own compact
+        # grid: header row of day numbers + one row per skill.
         week_index = 0
-        while current_day <= days_in_month:
-            base_row = week_index * (len(self.skills) + 1)
+        while True:
+            # Determine if this week has any days in the current month. If not,
+            # we stop creating further week cards.
+            has_days = False
+            for col in range(7):
+                calendar_index = week_index * 7 + col
+                day_num = calendar_index - first_weekday + 1
+                if 1 <= day_num <= days_in_month:
+                    has_days = True
+                    break
+            if not has_days:
+                break
+
+            week_card = QFrame(self.grid_container)
+            week_card.setFrameShape(QFrame.Shape.NoFrame)
+            week_card.setFrameShadow(QFrame.Shadow.Plain)
+            week_card.setStyleSheet(
+                "QFrame {"
+                "  background-color: rgba(148, 163, 184, 10);"
+                "  border-radius: 6px;"
+                "  border: 1px solid rgba(148, 163, 184, 80);"
+                "}"
+            )
+            week_layout = QGridLayout(week_card)
+            week_layout.setContentsMargins(8, 1, 8, 1)
+            week_layout.setHorizontalSpacing(12)
+            # Tighter vertical spacing so skill rows sit closer together while
+            # remaining readable.
+            week_layout.setVerticalSpacing(0)
 
             # Header row for this week: compact day numbers above each column.
             for col in range(7):
                 calendar_index = week_index * 7 + col
                 day_num = calendar_index - first_weekday + 1
 
-                header = QLabel("", self.grid_container)
-                # Smaller, tight header so the numbers sit closer to the circles.
+                header = QLabel("", week_card)
                 header.setAlignment(
                     Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
                 )
                 header.setContentsMargins(0, 0, 0, 0)
                 header.setFixedHeight(14)
+                # Ensure day numbers are rendered as simple text with no
+                # background pill or border, even if a global style is set.
+                header.setStyleSheet(
+                    "QLabel { background: transparent; border: none; }"
+                )
                 if 1 <= day_num <= days_in_month:
                     header.setText(str(day_num))
-                self.grid_layout.addWidget(header, base_row, col + 1)
+                week_layout.addWidget(header, 0, col + 1)
 
             # Skill rows for this week.
             for offset_row, skill in enumerate(self.skills, start=1):
-                row = base_row + offset_row
+                row = offset_row
 
                 # Emoji + label in column 0 for this skill/week, so users can
                 # read the meaning without a separate legend.
                 emoji = get_skill_emoji(skill)
                 skill_name = get_skill_label(skill)
-                emoji_label = QLabel(f"{emoji} {skill_name}", self.grid_container)
+                emoji_label = QLabel(f"{emoji} {skill_name}", week_card)
                 emoji_label.setAlignment(
                     Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
                 )
-                # Let the label expand enough to show both emoji and text.
                 emoji_label.setMinimumWidth(80)
-                self.grid_layout.addWidget(emoji_label, row, 0)
+                # Strip any inherited background/border so labels stay clean
+                # and text-only inside the week card.
+                emoji_label.setStyleSheet(
+                    "QLabel { background: transparent; border: none; }"
+                )
+                week_layout.addWidget(emoji_label, row, 0)
 
                 # Circles for each day of this week.
                 for col in range(7):
@@ -231,7 +258,7 @@ class TrackerView(QWidget):
                     # Slightly smaller circles so the monthly rows sit tighter
                     # together vertically.
                     indicator = CircleIndicator(
-                        done, size=16, parent=self.grid_container
+                        done, size=16, parent=week_card
                     )
 
                     def make_handler(
@@ -250,13 +277,9 @@ class TrackerView(QWidget):
                         return _on_clicked
 
                     indicator.clicked.connect(make_handler(day_str, skill, indicator))
-                    self.grid_layout.addWidget(indicator, row, col + 1)
+                    week_layout.addWidget(indicator, row, col + 1)
 
-            # Advance to next week.
-            current_day = min(
-                days_in_month + 1,
-                current_day + max(0, 7 - ((first_weekday + current_day - 1) % 7)),
-            )
+            self.grid_layout.addWidget(week_card)
             week_index += 1
 
         self._update_month_stats()
