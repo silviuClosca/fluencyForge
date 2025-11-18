@@ -20,7 +20,7 @@
   "2025-11-18": {
     "reading": true,
     "listening": true,
-    "speaking": true,
+    "speaking": false,
     "writing": false
   },
   "2025-11-19": {
@@ -54,14 +54,32 @@
     "writing": false
   },
   "2025-11-24": {
-    "reading": true,
-    "listening": true,
-    "speaking": true,
-    "writing": true
+    "reading": false,
+    "listening": false,
+    "speaking": false,
+    "writing": false
   },
   "2025-11-25": {
     "reading": false,
     "listening": false,
+    "speaking": false,
+    "writing": false
+  },
+  "2025-11-16": {
+    "reading": true,
+    "listening": true,
+    "speaking": true,
+    "writing": false
+  },
+  "2025-11-15": {
+    "reading": true,
+    "listening": true,
+    "speaking": true,
+    "writing": false
+  },
+  "2025-11-14": {
+    "reading": true,
+    "listening": true,
     "speaking": true,
     "writing": false
   }

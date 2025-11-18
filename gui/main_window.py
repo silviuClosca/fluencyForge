@@ -66,10 +66,15 @@ class FluencyForgeWindow(QWidget):
     def _on_tab_changed(self, index: int) -> None:
         # When switching tabs, refresh any views that cache data from disk.
         widget = self.tabs.widget(index)
-        if widget is self.dashboard_view and hasattr(self.dashboard_view, "refresh_goals_from_storage"):
-            self.dashboard_view.refresh_goals_from_storage()
+        if widget is self.dashboard_view:
+            if hasattr(self.dashboard_view, "refresh_goals_from_storage"):
+                self.dashboard_view.refresh_goals_from_storage()
+            if hasattr(self.dashboard_view, "refresh_resources_from_storage"):
+                self.dashboard_view.refresh_resources_from_storage()
         elif widget is self.goals_view and hasattr(self.goals_view, "refresh_current_month"):
             self.goals_view.refresh_current_month()
+        elif widget is self.tracker_view and hasattr(self.tracker_view, "refresh_from_storage"):
+            self.tracker_view.refresh_from_storage()
 
     def show_radar_tab(self) -> None:
         index = self.tabs.indexOf(self.radar_view)

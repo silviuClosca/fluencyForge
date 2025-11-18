@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "id": "270b79db-0499-4af2-aea8-61f737e0a826",
+    "type": "Podcast",
+    "name": "Nihongo con Teppei",
+    "link": "https://www.youtube.com/watch?v=xGmGa6Py4_M",
+    "notes": "",
+    "deck_name": null,
+    "tags": [
+      "listening"
+    ]
+  },
+  {
+    "id": "c45aabf8-ac9f-4822-9f4b-9352c4d2c1d1",
+    "type": "Book",
+    "name": "A guide to Japanese Grammar",
+    "link": "https://guidetojapanese.org/learn/grammar",
+    "notes": "",
+    "deck_name": "Tofugu Katakana Anki Deck",
+    "tags": [
+      "grammar"
+    ]
+  }
+]

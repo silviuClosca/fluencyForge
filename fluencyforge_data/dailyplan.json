@@ -1,9 +1,9 @@
 {
   "tasks": [
-    "Read 10 word per day",
-    "Listen 10 minutes of NNihongo con tonigo",
-    "Repeat 10 words",
-    "Write 10 kana"
+    "Study 20 kana cards in Tofugu deck",
+    "Review previous kana cards ",
+    "10 minutes listening immersion",
+    "Write 5 kana characters by hand"
   ],
   "show_on_startup": true
 }

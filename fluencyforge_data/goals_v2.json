@@ -2,14 +2,14 @@
   "2025-11": {
     "month": "2025-11",
     "goals": [
-      "G1 Test 12",
-      "Goal2",
-      "goasl"
+      "Master Kana",
+      "Build Core Vocabulary Foundation",
+      "Understand Basic Grammar & Start Reading"
     ],
     "completed": [
-      true,
-      true,
-      true
+      false,
+      false,
+      false
     ],
     "notes": "",
     "archived": false,
@@ -19,49 +19,47 @@
       "General"
     ],
     "reflections": [
-      "r12\nsdasdsadsadsa",
-      "șaldmjsajdksljdsajdsajd\ndsadsadsadas",
-      "dasdsadsadsadasd\ndsadsadsadasd"
+      "By the end of Week 1, I will accurately recognize and read all Hiragana and Katakana by completing all cards in the Tofugu Hiragana and Katakana decks.\n\nSpecific: Learn to recognize and read all Hiragana and Katakana characters.\nMeasurable: Complete 100% of the Tofugu Kana decks.\nAchievable: 20–30 minutes/day for 7 days.\nRelevant: Kana is essential for reading vocabulary and grammar.\nTime-bound: Complete by Day 7.",
+      "By the end of Month 1, I will learn at least 300 Japanese words by studying 10–15 new cards daily from the Core 2k/6k Optimized deck.\n\nSpecific: Learn the first 300 most common Japanese words.\nMeasurable: Study 10–15 new cards/day from the Core 2k/6k Optimized deck.\nAchievable: Fits a 30 min/day schedule.\nRelevant: Core vocabulary allows you to understand basic sentences and anime.\nTime-bound: Complete by Day 30.",
+      "By Day 30, I will complete at least 20 Tae Kim grammar cards and read 5 NHK Easy news articles to build foundational comprehension and begin reading real Japanese.\n\nSpecific: Learn the essential beginner grammar patterns and read simple Japanese texts.\nMeasurable: Complete 20–30 Tae Kim grammar cards + read 5 NHK Easy articles.\nAchievable: Fits with 5–10 min/day grammar + 10 min/day reading.\nRelevant: Grammar + reading accelerates comprehension and long-term fluency.\nTime-bound: Complete by Day 30."
     ],
     "subtasks": [
       [
-        "dasdsadsadsad",
-        ""
+        "Specific: Learn to recognize and read all Hiragana and Katakana characters.",
+        "Measurable: Complete 100% of the Tofugu Kana decks.",
+        "Achievable: 20–30 minutes/day for 7 days.",
+        "Relevant: Kana is essential for reading vocabulary and grammar."
       ],
       [
-        "s21asdsad",
-        "s22dasdasd",
         "dasdsadasdas"
       ],
       [
-        "dsadsadsad",
         "dsadsadas"
       ]
     ],
     "subtasks_done": [
       [
         false,
+        false,
+        false,
         false
       ],
       [
-        false,
-        true,
         false
       ],
       [
-        false,
         false
       ]
     ],
     "created_at": [
-      "2025-11-17T17:19:16",
-      "2025-11-17T17:31:22",
-      "2025-11-17T16:32:19"
+      "2025-11-18T10:01:04",
+      "2025-11-18T10:01:55",
+      "2025-11-18T10:02:26"
     ],
     "completed_at": [
-      "2025-11-17T17:07:41",
-      "2025-11-17T18:55:23",
-      "2025-11-17T16:32:23"
+      "",
+      "",
+      ""
     ],
     "last_saved_by": "dashboard_view"
   }

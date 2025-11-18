@@ -20,6 +20,7 @@ from aqt.qt import (
     Qt,
     QComboBox,
     QHeaderView,
+    QColor,
 )
 
 from ..core.logic_resources import load_resources, save_resources
@@ -47,7 +48,9 @@ class ResourceDialog(QDialog):
         self.name_edit = QLineEdit(self)
         self.link_edit = QLineEdit(self)
         self.notes_edit = QTextEdit(self)
-        self.deck_edit = QLineEdit(self)
+        self.deck_combo = QComboBox(self)
+        self.deck_combo.setEditable(True)
+        self._populate_decks()
         self.tags_edit = QLineEdit(self)
         self.tags_edit.setPlaceholderText(
             "Tags (comma-separated: listening, JLPT, grammar)"
@@ -57,7 +60,7 @@ class ResourceDialog(QDialog):
         layout.addRow("Name", self.name_edit)
         layout.addRow("Link", self.link_edit)
         layout.addRow("Notes", self.notes_edit)
-        layout.addRow("Deck", self.deck_edit)
+        layout.addRow("Deck", self.deck_combo)
         layout.addRow("Tags", self.tags_edit)
 
         button_row = QHBoxLayout()
@@ -83,7 +86,7 @@ class ResourceDialog(QDialog):
             self.name_edit.setText(item.name)
             self.link_edit.setText(item.link)
             self.notes_edit.setPlainText(item.notes)
-            self.deck_edit.setText(item.deck_name or "")
+            self.deck_combo.setEditText(item.deck_name or "")
             if item.tags:
                 self.tags_edit.setText(", ".join(tag for tag in item.tags if tag.strip()))
 
@@ -97,9 +100,29 @@ class ResourceDialog(QDialog):
             name=self.name_edit.text(),
             link=self.link_edit.text(),
             notes=self.notes_edit.toPlainText(),
-            deck_name=self.deck_edit.text() or None,
+            deck_name=(self.deck_combo.currentText() or "").strip() or None,
             tags=tags,
         )
+
+    def _populate_decks(self) -> None:
+        """Populate deck dropdown with installed Anki decks.
+
+        Keeps the list simple (names only) and falls back silently if the
+        collection is not available, so the field remains usable as free text.
+        """
+
+        self.deck_combo.clear()
+        try:
+            if mw is None or mw.col is None:
+                return
+            for deck in mw.col.decks.all():
+                name = str(deck.get("name", "")).strip()
+                if name:
+                    self.deck_combo.addItem(name)
+        except Exception:
+            # If anything goes wrong, leave the combo empty; user can still
+            # type a deck name manually.
+            return
 
 
 class ResourcesView(QWidget):
@@ -144,21 +167,29 @@ class ResourcesView(QWidget):
         )
         # Hide row numbers; only show data columns.
         self.table.verticalHeader().setVisible(False)
+        # Enable hover feedback for clickable link/deck cells.
+        self.table.setMouseTracking(True)
         # Column sizing: icon is narrow, Name fills remaining space, others
         # keep content-based widths.
         fm = self.fontMetrics()
         icon_width = fm.horizontalAdvance("MMM") + 8
+        link_width = fm.horizontalAdvance("https://example.com") + 16
+        deck_width = fm.horizontalAdvance("My Deck Name") + 16
+        tags_width = fm.horizontalAdvance("tag1, tag2, tag3") + 16
+
         self.table.setColumnWidth(0, icon_width)
+        self.table.setColumnWidth(2, link_width)
+        self.table.setColumnWidth(3, deck_width)
+        self.table.setColumnWidth(4, tags_width)
 
         header = self.table.horizontalHeader()
-        # Icon column fixed
+        # Icon, Link, Deck, Tags columns fixed
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        # Name column stretches to fill the remaining space
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        # Name column stretches to fill remaining space
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        # Link, Deck, Tags: size to contents but remain adjustable
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self.table)
 
         buttons = QHBoxLayout()
@@ -172,12 +203,14 @@ class ResourcesView(QWidget):
 
         self.items: List[ResourceItem] = []  # full list
         self._row_ids: List[str] = []  # map table row -> ResourceItem.id
+        self._hovered_link_cell: Optional[tuple[int, int]] = None
 
         self.add_button.clicked.connect(self._on_add)
         self.edit_button.clicked.connect(self._on_edit)
         self.delete_button.clicked.connect(self._on_delete)
         self.table.cellDoubleClicked.connect(self._on_cell_double_clicked)
         self.table.cellClicked.connect(self._on_cell_clicked)
+        self.table.cellEntered.connect(self._on_cell_entered)
         self.search_edit.textChanged.connect(self._on_search_changed)
 
         self._load_items()
@@ -236,11 +269,11 @@ class ResourcesView(QWidget):
                     # Name column: always white text, even if it has a link.
                     cell.setForeground(Qt.GlobalColor.white)
                 elif col == 2 and item.link.strip():
-                    # Link column is clickable, keep blue color.
-                    cell.setForeground(Qt.GlobalColor.blue)
+                    # Link column is clickable, use a custom blue.
+                    cell.setForeground(QColor("#58a6ff"))
                 elif col == 3 and (item.deck_name or "").strip():
-                    # Deck column clickable, keep blue color.
-                    cell.setForeground(Qt.GlobalColor.blue)
+                    # Deck column clickable, use the same custom blue.
+                    cell.setForeground(QColor("#58a6ff"))
                 if col == 4 and tags_str:
                     cell.setToolTip(tags_str)
                 self.table.setItem(row, col, cell)
@@ -256,19 +289,14 @@ class ResourcesView(QWidget):
             self._apply_filter_and_refresh()
 
     def _selected_index(self) -> Optional[int]:
+        """Return the index into self.items for the currently selected row.
+
+        This delegates to _index_for_row so that Edit/Delete buttons use the
+        same row→item mapping as double-clicks and single-click handlers.
+        """
+
         row = self.table.currentRow()
-        if row < 0:
-            return None
-        cell = self.table.item(row, 1)  # Name column holds the id in UserRole
-        if cell is None:
-            return None
-        res_id = cell.data(Qt.ItemDataRole.UserRole)
-        if not res_id:
-            return None
-        for idx, item in enumerate(self.items):
-            if item.id == res_id:
-                return idx
-        return None
+        return self._index_for_row(row)
 
     def _on_edit(self) -> None:
         index = self._selected_index()
@@ -319,6 +347,44 @@ class ResourcesView(QWidget):
             return
         if column == 3 and (resource.deck_name or "").strip():
             self._open_deck(resource.deck_name or "")
+
+    def _on_cell_entered(self, row: int, column: int) -> None:
+        """Hover feedback for Link and Deck columns.
+
+        When the mouse is over a clickable Link/Deck cell, underline the text
+        and show a pointing-hand cursor. Reset styling when leaving.
+        """
+
+        # Reset previous hovered cell, if any.
+        if self._hovered_link_cell is not None:
+            prev_row, prev_col = self._hovered_link_cell
+            prev_item = self.table.item(prev_row, prev_col)
+            if prev_item is not None:
+                prev_font = prev_item.font()
+                prev_font.setUnderline(False)
+                prev_item.setFont(prev_font)
+        self._hovered_link_cell = None
+        self.table.setCursor(Qt.CursorShape.ArrowCursor)
+
+        item_index = self._index_for_row(row)
+        if item_index is None:
+            return
+        resource = self.items[item_index]
+
+        is_link_cell = column == 2 and resource.link.strip()
+        is_deck_cell = column == 3 and (resource.deck_name or "").strip()
+        if not (is_link_cell or is_deck_cell):
+            return
+
+        cell = self.table.item(row, column)
+        if cell is None:
+            return
+
+        font = cell.font()
+        font.setUnderline(True)
+        cell.setFont(font)
+        self._hovered_link_cell = (row, column)
+        self.table.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def select_row(self, index: int) -> None:
         if 0 <= index < self.table.rowCount():

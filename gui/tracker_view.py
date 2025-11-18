@@ -75,6 +75,19 @@ class TrackerView(QWidget):
 
         self._load_month()
 
+    def refresh_from_storage(self) -> None:
+        """Reload daily activity from storage and refresh the current month view."""
+
+        self.activity = load_daily_activity()
+        # Rebuild the month list (in case new months were added) and keep
+        # the currently selected month when possible.
+        current = self.month_combo.currentText() or self._current_month_str()
+        self._populate_months()
+        idx = self.month_combo.findText(current)
+        if idx >= 0:
+            self.month_combo.setCurrentIndex(idx)
+        self._load_month()
+
     # --------------------
     # Monthly helpers
     # --------------------

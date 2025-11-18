@@ -17,6 +17,7 @@ from aqt.qt import (
     Qt,
     QToolButton,
     QMessageBox,
+    QStyle,
 )
 
 from ..core.logic_goals import (
@@ -324,18 +325,26 @@ class GoalsView(QWidget):
                 edit = QLineEdit(self.subtasks_containers[i])
                 edit.setText(str(s_text))
 
+                delete_btn = QPushButton(self.subtasks_containers[i])
+                delete_btn.setFixedWidth(24)
+                delete_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon))
+                delete_btn.setStyleSheet("QPushButton { border: none; }")
+                delete_btn.setToolTip("Delete subtask")
+
                 row.addWidget(circle)
                 row.addWidget(chk)
                 row.addWidget(edit, 1)
+                row.addWidget(delete_btn)
                 layout.addLayout(row)
 
-                # Keep CircleIndicator and checkbox visually in sync
                 chk.toggled.connect(lambda checked, circ=circle: circ.set_completed(checked))
 
-                # Autosave when existing subtask is changed
                 chk.toggled.connect(self._auto_save)
                 edit.textChanged.connect(self._auto_save)
                 circle.clicked.connect(lambda _=False, c=chk: c.toggle())
+                delete_btn.clicked.connect(
+                    lambda _=False, gi=i, rl=row: self._remove_subtask_row(gi, rl)
+                )
 
         self._update_banner_and_readonly()
         self._update_progress_label()
@@ -584,7 +593,6 @@ class GoalsView(QWidget):
         layout = self.subtasks_layouts[goal_index]
         row = QHBoxLayout()
 
-        # New subtask uses the same CircleIndicator + hidden checkbox pattern.
         circle = CircleIndicator(False, size=14, parent=self.subtasks_containers[goal_index])
         chk = QCheckBox(self.subtasks_containers[goal_index])
         chk.setTristate(False)
@@ -597,22 +605,48 @@ class GoalsView(QWidget):
         edit = QLineEdit(self.subtasks_containers[goal_index])
         edit.setPlaceholderText("New subtask…")
 
+        delete_btn = QPushButton(self.subtasks_containers[goal_index])
+        delete_btn.setFixedWidth(24)
+        delete_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon))
+        delete_btn.setStyleSheet("QPushButton { border: none; }")
+        delete_btn.setToolTip("Delete subtask")
+
         row.addWidget(circle)
         row.addWidget(chk)
         row.addWidget(edit, 1)
+        row.addWidget(delete_btn)
         layout.addLayout(row)
 
-        # Keep CircleIndicator and checkbox visually in sync
         chk.toggled.connect(lambda checked, circ=circle: circ.set_completed(checked))
 
-        # Autosave when new subtask is modified
         chk.toggled.connect(self._auto_save)
         edit.textChanged.connect(self._auto_save)
         circle.clicked.connect(lambda _=False, c=chk: c.toggle())
+        delete_btn.clicked.connect(
+            lambda _=False, gi=goal_index, rl=row: self._remove_subtask_row(gi, rl)
+        )
 
     def _on_toggle_section(self, checked: bool, widget: QWidget, button: QToolButton) -> None:
         widget.setVisible(checked)
         button.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
+
+    def _remove_subtask_row(self, goal_index: int, row_layout: QHBoxLayout) -> None:
+        if goal_index < 0 or goal_index >= len(self.subtasks_layouts):
+            return
+        layout = self.subtasks_layouts[goal_index]
+        for idx in range(layout.count()):
+            item = layout.itemAt(idx)
+            inner = item.layout()
+            if inner is row_layout:
+                removed = layout.takeAt(idx)
+                if removed is not None:
+                    while inner.count():
+                        child_item = inner.takeAt(0)
+                        w = child_item.widget()
+                        if w is not None:
+                            w.deleteLater()
+                break
+        self._auto_save()
 
     def _on_delete_goal(self, index: int) -> None:
         """Clear a goal card (text, completion, subtasks, reflection, metadata)."""

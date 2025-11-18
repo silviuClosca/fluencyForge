@@ -18,6 +18,7 @@ from aqt.qt import (
     QLineEdit,
     QProgressBar,
     QToolButton,
+    QScrollArea,
 )
 
 from .radar_view import RadarView
@@ -75,7 +76,9 @@ class DashboardView(QWidget):
     # helpers to reach main window and tabs
     def _main_window(self):
         w = self.parent()
-        while w is not None and not hasattr(w, "show_daily_plan_tab"):
+        # Walk up the parents until we find the FluencyForge main window,
+        # identified by its tab navigation helpers (e.g. show_goals_tab).
+        while w is not None and not hasattr(w, "show_goals_tab"):
             w = w.parent()
         return w
 
@@ -407,8 +410,67 @@ class DashboardView(QWidget):
         frame = self._create_section_frame("Resources")
         layout = frame.layout()  # type: ignore[assignment]
 
+        # Container widget + scroll area so only ~2 resources are visible and
+        # the rest can be scrolled.
+        resources_container = QWidget(self)
+        self._resources_rows_layout = QVBoxLayout(resources_container)
+        self._resources_rows_layout.setContentsMargins(0, 0, 0, 0)
+        self._resources_rows_layout.setSpacing(4)
+
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        # Transparent background so the scroll area blends with the addon.
+        scroll.setStyleSheet(
+            "QScrollArea { background-color: transparent; border: none; }"
+            "QScrollArea > QWidget > QWidget { background-color: transparent; }"
+        )
+        # Fixed height so that roughly two resource rows are visible.
+        scroll.setFixedHeight(70)
+        scroll.setWidget(resources_container)
+
+        layout.addWidget(scroll)
+
+        self._populate_resources_preview()
+
+        button_row = QHBoxLayout()
+        button_row.addStretch(1)
+        btn = QPushButton("View All Resources", self)
+        btn.clicked.connect(self._go_resources)
+        button_row.addWidget(btn)
+        layout.addLayout(button_row)
+
+        return frame
+
+    def _populate_resources_preview(self) -> None:
+        """Populate the dashboard's mini resources list from storage."""
+
+        rows_layout = getattr(self, "_resources_rows_layout", None)
+        if rows_layout is None:
+            return
+
+        # Clear existing row layouts/widgets.
+        while rows_layout.count():
+            item = rows_layout.takeAt(0)
+            inner = item.layout()
+            w = item.widget()
+            if inner is not None:
+                while inner.count():
+                    child_item = inner.takeAt(0)
+                    child_widget = child_item.widget()
+                    if child_widget is not None:
+                        child_widget.deleteLater()
+            if w is not None:
+                w.deleteLater()
+
         raw = load_resources()
-        items: List[Dict] = raw[:3]
+        items: List[Dict] = raw
+
+        if not items:
+            rows_layout.addWidget(QLabel("No resources added yet"))
+            return
 
         for idx, obj in enumerate(items):
             row = QHBoxLayout()
@@ -422,19 +484,12 @@ class DashboardView(QWidget):
             btn.clicked.connect(lambda _=False, i=idx: self._go_resource(i))
             row.addWidget(btn)
 
-            layout.addLayout(row)
+            rows_layout.addLayout(row)
 
-        if not items:
-            layout.addWidget(QLabel("No resources added yet"))
+    def refresh_resources_from_storage(self) -> None:
+        """Public hook: refresh the dashboard Resources preview from disk."""
 
-        button_row = QHBoxLayout()
-        button_row.addStretch(1)
-        btn = QPushButton("View All Resources", self)
-        btn.clicked.connect(self._go_resources)
-        button_row.addWidget(btn)
-        layout.addLayout(button_row)
-
-        return frame
+        self._populate_resources_preview()
 
     # navigation helpers
     def _go_tracker(self) -> None:
@@ -496,16 +551,21 @@ class DashboardView(QWidget):
         )
         self._goals_progress_bar.setValue(done)
 
-        # Match progress bar color to the green state indicator when all
-        # three goals are completed; otherwise use a neutral style.
-        if done >= 3:
-            self._goals_progress_bar.setStyleSheet(
-                "QProgressBar::chunk { background-color:  #7CC9A3; }"
-            )
-        else:
-            self._goals_progress_bar.setStyleSheet(
-                "QProgressBar::chunk { background-color:  #7CC9A3; }"
-                )
+        # Match progress bar color to the green state indicator while keeping
+        # the background transparent and corners rounded so it blends with the
+        # addon UI.
+        base_style = (
+            "QProgressBar {"
+            " background-color: transparent;"
+            " border: 0px;"
+            " border-radius: 5px;"
+            " }"
+            "QProgressBar::chunk {"
+            " background-color: #7CC9A3;"
+            " border-radius: 5px;"
+            " }"
+        )
+        self._goals_progress_bar.setStyleSheet(base_style)
 
     def _refresh_dashboard_goal_colors(self) -> None:
         """Sync CircleIndicators used as completion controls with goal state."""
