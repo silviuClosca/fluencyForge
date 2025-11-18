@@ -159,6 +159,7 @@ class TrackerView(QWidget):
         month = self.month_combo.currentText() or self._current_month_str()
         year, month_num = map(int, month.split("-"))
         days_in_month = monthrange(year, month_num)[1]
+        today = date.today()
 
         # Clear previous grid contents
         while self.grid_layout.count():
@@ -210,18 +211,39 @@ class TrackerView(QWidget):
                 day_num = calendar_index - first_weekday + 1
 
                 header = QLabel("", week_card)
-                header.setAlignment(
-                    Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
-                )
+                header.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 header.setContentsMargins(0, 0, 0, 0)
-                header.setFixedHeight(14)
-                # Ensure day numbers are rendered as simple text with no
-                # background pill or border, even if a global style is set.
-                header.setStyleSheet(
-                    "QLabel { background: transparent; border: none; }"
-                )
+                # Slightly taller so the highlight border around today's day
+                # number is not clipped vertically.
+                header.setFixedHeight(18)
                 if 1 <= day_num <= days_in_month:
                     header.setText(str(day_num))
+
+                    # Highlight today's date in the monthly tracker so it is
+                    # easy to spot at a glance.
+                    if (
+                        year == today.year
+                        and month_num == today.month
+                        and day_num == today.day
+                    ):
+                        header.setStyleSheet(
+                            "QLabel {"
+                            " border: 1px solid #7CC9A3;"
+                            " border-radius: 8px;"
+                            " padding: 1px 4px;"
+                            " background-color: rgba(190, 234, 211, 80);"
+                            " }"
+                        )
+                    else:
+                        # All other days stay clean text-only.
+                        header.setStyleSheet(
+                            "QLabel { background: transparent; border: none; }"
+                        )
+                else:
+                    # Empty cells have no styling.
+                    header.setStyleSheet(
+                        "QLabel { background: transparent; border: none; }"
+                    )
                 week_layout.addWidget(header, 0, col + 1)
 
             # Skill rows for this week.
