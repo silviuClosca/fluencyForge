@@ -13,6 +13,7 @@ from aqt.qt import (
     Qt,
     QGridLayout,
     QSizePolicy,
+    QFrame,
 )
 
 from ..core.logic_tracker import load_daily_activity, save_daily_activity
@@ -76,17 +77,38 @@ class TrackerView(QWidget):
         self.grid_layout.setContentsMargins(0, 0, 0, 0)
         # Tighter spacing so the monthly calendar columns sit closer together.
         self.grid_layout.setHorizontalSpacing(12)
-        self.grid_layout.setVerticalSpacing(6)
+        # Reduced vertical spacing so day numbers sit closer to the circle
+        # rows and the weekly bands are more compact.
+        self.grid_layout.setVerticalSpacing(2)
         # Column 0 (emoji) should stay narrow; remaining columns get the space.
         self.grid_layout.setColumnStretch(0, 0)
         content_row.addWidget(self.grid_container)
 
-        # Right column: analytics text only (multi-line label). The meaning of
-        # each emoji is now shown directly in the grid's left column, so we no
-        # longer need a separate legend column.
+        # Right column: analytics summary card (multi-line text) with a soft
+        # background and rounded corners. The meaning of each emoji is shown
+        # directly in the grid's left column, so we only need this single
+        # summary card on the side.
         side_column = QVBoxLayout()
-        self.month_stats_label = QLabel("", self)
-        side_column.addWidget(self.month_stats_label)
+
+        stats_card = QFrame(self)
+        stats_card.setFrameShape(QFrame.Shape.NoFrame)
+        stats_card.setFrameShadow(QFrame.Shadow.Plain)
+        stats_card.setStyleSheet(
+            "QFrame {"
+            "  background-color: rgba(148, 163, 184, 30);"  # soft slate tint
+            "  border-radius: 8px;"
+            "  border: 1px solid rgba(15, 23, 42, 40);"      # subtle border/shadow
+            "}"
+        )
+        stats_layout = QVBoxLayout(stats_card)
+        stats_layout.setContentsMargins(2, 2, 2, 2)
+        stats_layout.setSpacing(2)
+
+        self.month_stats_label = QLabel("", stats_card)
+        stats_layout.addWidget(self.month_stats_label)
+
+        side_column.addWidget(stats_card)
+        side_column.addStretch(1)
 
         content_row.addLayout(side_column)
         monthly_layout.addLayout(content_row)
@@ -163,15 +185,18 @@ class TrackerView(QWidget):
         while current_day <= days_in_month:
             base_row = week_index * (len(self.skills) + 1)
 
-            # Header row for this week: day numbers for each column.
+            # Header row for this week: compact day numbers above each column.
             for col in range(7):
                 calendar_index = week_index * 7 + col
                 day_num = calendar_index - first_weekday + 1
 
                 header = QLabel("", self.grid_container)
+                # Smaller, tight header so the numbers sit closer to the circles.
                 header.setAlignment(
-                    Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+                    Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom
                 )
+                header.setContentsMargins(0, 0, 0, 0)
+                header.setFixedHeight(14)
                 if 1 <= day_num <= days_in_month:
                     header.setText(str(day_num))
                 self.grid_layout.addWidget(header, base_row, col + 1)
@@ -203,8 +228,10 @@ class TrackerView(QWidget):
                     day_str = date(year, month_num, day_num).strftime("%Y-%m-%d")
                     day_data = self.activity.get(day_str, {})
                     done = bool(day_data.get(skill, False))
+                    # Slightly smaller circles so the monthly rows sit tighter
+                    # together vertically.
                     indicator = CircleIndicator(
-                        done, size=18, parent=self.grid_container
+                        done, size=16, parent=self.grid_container
                     )
 
                     def make_handler(
