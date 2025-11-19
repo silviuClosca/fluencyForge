@@ -849,6 +849,13 @@ class DashboardView(QWidget):
         self._goals_month_id = get_current_month_id()
         self._dashboard_goals = load_goals_for_month(self._goals_month_id)
 
+        # Block signals while loading to prevent partial updates from triggering saves
+        for idx in range(3):
+            if idx < len(self._goal_edits_dash):
+                self._goal_edits_dash[idx].blockSignals(True)
+            if idx < len(self._goal_checks_dash):
+                self._goal_checks_dash[idx].blockSignals(True)
+
         for idx in range(3):
             text = (
                 self._dashboard_goals.goals[idx]
@@ -864,6 +871,13 @@ class DashboardView(QWidget):
                 self._goal_edits_dash[idx].setText(text)
             if idx < len(self._goal_checks_dash):
                 self._goal_checks_dash[idx].setChecked(completed)
+
+        # Unblock signals after all widgets are updated
+        for idx in range(3):
+            if idx < len(self._goal_edits_dash):
+                self._goal_edits_dash[idx].blockSignals(False)
+            if idx < len(self._goal_checks_dash):
+                self._goal_checks_dash[idx].blockSignals(False)
 
         self._refresh_dashboard_goals_progress()
         self._refresh_dashboard_goal_colors()

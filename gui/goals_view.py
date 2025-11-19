@@ -289,6 +289,14 @@ class GoalsView(QWidget):
         goals: MonthlyGoals = load_month_goals(month)
         self._current_goals = goals
 
+        # Block signals while loading data to prevent premature auto-save
+        # that would read partially updated widgets and overwrite fresh data
+        for i in range(3):
+            self.goal_edits[i].blockSignals(True)
+            self.goal_checks[i].blockSignals(True)
+            self.category_combos[i].blockSignals(True)
+            self.reflection_edits[i].blockSignals(True)
+
         for i in range(3):
             text = goals.goals[i] if i < len(goals.goals) else ""
             done = goals.completed[i] if i < len(goals.completed) else False
@@ -362,6 +370,13 @@ class GoalsView(QWidget):
                 delete_btn.clicked.connect(
                     lambda _=False, gi=i, rl=row: self._remove_subtask_row(gi, rl)
                 )
+
+        # Unblock signals after all widgets are updated
+        for i in range(3):
+            self.goal_edits[i].blockSignals(False)
+            self.goal_checks[i].blockSignals(False)
+            self.category_combos[i].blockSignals(False)
+            self.reflection_edits[i].blockSignals(False)
 
         self._update_banner_and_readonly()
         self._update_progress_label()
