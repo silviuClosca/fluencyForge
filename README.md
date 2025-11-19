@@ -5,7 +5,7 @@
 Add-on code: **275563061**  
 https://ankiweb.net/shared/info/275563061
 
-**FluencyForge** is an Anki add-on that helps you track and balance your language-learning practice across the four core skills:
+**LanguageForge** is an Anki add-on that helps you track and balance your language-learning practice across the four core skills:
 
 - **Reading**
 - **Listening**
@@ -43,7 +43,7 @@ It provides a compact dashboard inside Anki with a **weekly tracker**, **monthly
 
 ### Settings
 - Numeric base font-size control  
-- Option to auto-open FluencyForge when Anki starts  
+- Option to auto-open LanguageForge when Anki starts  
 
 ---
 
@@ -57,14 +57,14 @@ It provides a compact dashboard inside Anki with a **weekly tracker**, **monthly
    ```
 
 3. Restart Anki.
-4. Open **Tools → Add-ons**, ensure **FluencyForge** is enabled.
-5. Open FluencyForge from the main Anki window (it appears as a dockable panel).
+4. Open **Tools → Add-ons**, ensure **LanguageForge** is enabled.
+5. Open LanguageForge from the main Anki window (it appears as a dockable panel).
 
 ---
 
 ## Data & Privacy
 
-FluencyForge stores all of its user data locally in JSON files under:
+LanguageForge stores all of its user data locally in JSON files under:
 
 ```
 fluencyforge_data/
@@ -80,7 +80,7 @@ These files contain:
 Notes:
 - These files are **specific to your machine and Anki profile**.  
 - The repository includes a `.gitignore` entry so `fluencyforge_data/` is **not tracked in Git**.  
-- On first run, FluencyForge will automatically create any missing JSON files with sensible defaults.
+- On first run, LanguageForge will automatically create any missing JSON files with sensible defaults.
 
 If distributing this add-on:
 - Keep `fluencyforge_data/` empty (or omit it).  
@@ -121,4 +121,5 @@ Key modules:
 **MIT License + Non-Commercial Addendum**  
 You may not use this software for commercial purposes without obtaining a separate commercial license.  
 See the full `LICENSE` file for details.
+
 
