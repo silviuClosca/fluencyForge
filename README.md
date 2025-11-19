@@ -1,4 +1,4 @@
-# FluencyForge
+# LanguageForge
 
 ## Install from AnkiWeb
 
@@ -97,8 +97,8 @@ If distributing this add-on:
 ### Project Structure
 Key modules:
 
-- `main.py` — Entry point; integrates FluencyForge into Anki  
-- `gui/main_window.py` — Main FluencyForge dockable window  
+- `main.py` — Entry point; integrates LanguageForge into Anki  
+- `gui/main_window.py` — Main LanguageForge dockable window  
 - `gui/dashboard_view.py` — Weekly tracker, radar chart, goals view  
 - `gui/tracker_view.py` — Monthly calendar tracker  
 - `gui/radar_view.py` — Radar chart + balance index  
