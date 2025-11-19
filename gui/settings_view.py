@@ -22,7 +22,7 @@ from ..core.themes import get_all_theme_names, get_theme_display_name
 
 
 class SettingsView(QWidget):
-    """Settings tab for FluencyForge.
+    """Settings tab for LanguageForge.
 
     Exposes theme, visual, and startup/behavior options.
     """
@@ -72,7 +72,7 @@ class SettingsView(QWidget):
         startup_layout = QVBoxLayout(startup_group)
 
         self.open_on_startup_checkbox = QCheckBox(
-            "Open FluencyForge automatically when Anki starts", startup_group
+            "Open LanguageForge automatically when Anki starts", startup_group
         )
         startup_layout.addWidget(self.open_on_startup_checkbox)
 

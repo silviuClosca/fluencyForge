@@ -11,7 +11,7 @@ _SETTINGS_FILENAME = "settings.json"
 
 @dataclass
 class Settings:
-    """User settings for FluencyForge.
+    """User settings for LanguageForge.
 
     Includes theme selection, font sizing, and startup behavior.
     """

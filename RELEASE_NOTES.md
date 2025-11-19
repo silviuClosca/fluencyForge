@@ -1,4 +1,4 @@
-# FluencyForge Release Notes
+# LanguageForge Release Notes
 
 ## 1.1.0 – Theme Mode & UI Polish
 
@@ -42,4 +42,4 @@
 
 ## 1.0.0 – Initial Release
 
-- Initial public release of FluencyForge with Dashboard, Tracker, Goals, and Resources features.
+- Initial public release of LanguageForge with Dashboard, Tracker, Goals, and Resources features.

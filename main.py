@@ -3,24 +3,24 @@ from typing import Optional
 from aqt import mw, gui_hooks
 from aqt.qt import QAction, QDockWidget, Qt, QWidget
 
-from .gui.main_window import FluencyForgeWindow
+from .gui.main_window import LanguageForgeWindow
 from .core.logic_dailyplan import load_daily_plan
 from .core.logic_settings import load_settings
 
 _ff_dock: Optional[QDockWidget] = None
-_ff_widget: Optional[FluencyForgeWindow] = None
+_ff_widget: Optional[LanguageForgeWindow] = None
 
 
 def _ensure_dock() -> QDockWidget:
     global _ff_dock, _ff_widget
     if _ff_dock is None:
-        _ff_widget = FluencyForgeWindow(mw)
+        _ff_widget = LanguageForgeWindow(mw)
         # Ensure the dock is wide enough that all dashboard content
         # (including the radar) is visible without horizontal resizing.
         _ff_widget.setMinimumWidth(520)
 
-        dock = QDockWidget("FluencyForge", mw)
-        dock.setObjectName("FluencyForgeDock")
+        dock = QDockWidget("LanguageForge", mw)
+        dock.setObjectName("LanguageForgeDock")
         dock.setWidget(_ff_widget)
         # Hide the default title bar (text + native buttons); we provide
         # custom pop-out/close buttons inline in the tab bar instead.
@@ -30,7 +30,7 @@ def _ensure_dock() -> QDockWidget:
     return _ff_dock
 
 
-def _show_fluencyforge() -> None:
+def _show_languageforge() -> None:
     dock = _ensure_dock()
     dock.show()
     dock.raise_()
@@ -56,13 +56,13 @@ def _maybe_show_on_startup() -> None:
 
 
 def init_addon() -> None:
-    action = QAction("FluencyForge – Language System", mw)
-    action.triggered.connect(_show_fluencyforge)
+    action = QAction("LanguageForge – Language System", mw)
+    action.triggered.connect(_show_languageforge)
     mw.form.menuTools.addAction(action)
 
     gui_hooks.main_window_did_init.append(_maybe_show_on_startup)
 
-    # When Anki's theme changes (light <-> dark), update FluencyForge theme
+    # When Anki's theme changes (light <-> dark), update LanguageForge theme
     # immediately if using "anki_auto" mode.
     try:
         if hasattr(gui_hooks, "theme_did_change"):
@@ -77,8 +77,21 @@ def init_addon() -> None:
                             _ff_widget._current_theme_colors = _ff_widget._get_current_theme_colors()  # type: ignore[attr-defined]
                         if hasattr(_ff_widget, "_apply_tab_styles"):
                             _ff_widget._apply_tab_styles()  # type: ignore[attr-defined]
+                        # First rebuild dashboard resources preview so new
+                        # Open buttons exist before we apply theme & font.
+                        try:
+                            dashboard = getattr(_ff_widget, "dashboard_view", None)
+                            if dashboard is not None and hasattr(dashboard, "refresh_resources_from_storage"):
+                                dashboard.refresh_resources_from_storage()  # type: ignore[attr-defined]
+                        except Exception:
+                            # If anything goes wrong, fall back to theme
+                            # application only.
+                            pass
+
                         if hasattr(_ff_widget, "_apply_theme_to_all_views"):
                             _ff_widget._apply_theme_to_all_views()  # type: ignore[attr-defined]
+                        if hasattr(_ff_widget, "_apply_font_size"):
+                            _ff_widget._apply_font_size()  # type: ignore[attr-defined]
 
             gui_hooks.theme_did_change.append(_on_theme_changed)  # type: ignore[attr-defined]
     except Exception:

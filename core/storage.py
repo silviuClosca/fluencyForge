@@ -7,11 +7,11 @@ from aqt import mw
 
 
 def get_addon_dir() -> Path:
-    return Path(mw.addonManager.addonsFolder()) / "fluencyforge"
+    return Path(mw.addonManager.addonsFolder()) / "languageforge"
 
 
 def get_data_dir() -> Path:
-    data_dir = get_addon_dir() / "fluencyforge_data"
+    data_dir = get_addon_dir() / "languageforge_data"
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir
 

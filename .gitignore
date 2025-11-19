@@ -1,4 +1,4 @@
-fluencyforge_data/
+languageforge_data/
 
 # Python cache / bytecode
 __pycache__/

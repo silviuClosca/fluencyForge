@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 @dataclass
 class ThemeColors:
-    """Color palette for a FluencyForge theme.
+    """Color palette for a LanguageForge theme.
     
     All colors are hex strings (e.g., "#FFFFFF").
     """

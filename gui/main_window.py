@@ -27,14 +27,14 @@ from ..core.logic_settings import load_settings, Settings
 from ..core.themes import get_theme_colors, ThemeColors
 
 
-class FluencyForgeWindow(QWidget):
+class LanguageForgeWindow(QWidget):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("FluencyForge")
+        self.setWindowTitle("LanguageForge")
         self.resize(900, 700)
 
         # Set object name for styling
-        self.setObjectName("fluencyforge_main")
+        self.setObjectName("languageforge_main")
         
         # Prevent Anki's stylesheet from affecting our widgets
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -113,7 +113,7 @@ class FluencyForgeWindow(QWidget):
         scroll = self._scroll
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setObjectName("fluencyforge_scroll")
+        scroll.setObjectName("languageforge_scroll")
         # Allow horizontal scrolling when needed so larger font sizes don't
         # cause the right edge of the UI to be clipped.
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -183,7 +183,7 @@ class FluencyForgeWindow(QWidget):
             self.resources_view.select_row(index_row)
 
     def _apply_font_size(self) -> None:
-        """Apply the configured font size to the FluencyForge UI.
+        """Apply the configured font size to the LanguageForge UI.
 
         We adjust the base font on the main window and propagate it to all
         children so that Dashboard/Tracker/Goals/Resources/Settings update
@@ -412,29 +412,29 @@ class FluencyForgeWindow(QWidget):
         # Re-apply tab bar style (for text/background).
         self._apply_tab_styles()
         
-        # Apply theme to all views
-        self._apply_theme_to_all_views()
-
         # First rebuild dashboard previews that create widgets dynamically so
-        # that the new widgets are present when we apply the font size.
+        # that newly created widgets are present when we apply theme & font.
         if hasattr(self.dashboard_view, "refresh_resources_from_storage"):
             self.dashboard_view.refresh_resources_from_storage()
 
-        # Now apply the font size to the entire FluencyForge UI, including the
+        # Apply theme to all views, including the rebuilt dashboard.
+        self._apply_theme_to_all_views()
+
+        # Now apply the font size to the entire LanguageForge UI, including the
         # freshly rebuilt dashboard resources preview.
         self._apply_font_size()
 
     # dock helpers -----------------------------------------------------
 
     def _find_dock(self) -> Optional[QDockWidget]:
-        """Locate the FluencyForge QDockWidget in Anki's main window."""
+        """Locate the LanguageForge QDockWidget in Anki's main window."""
 
         if mw is None:
             return None
-        return mw.findChild(QDockWidget, "FluencyForgeDock")
+        return mw.findChild(QDockWidget, "LanguageForgeDock")
 
     def _on_popout_clicked(self) -> None:
-        """Pop out the FluencyForge dock as a floating window."""
+        """Pop out the LanguageForge dock as a floating window."""
 
         dock = self._find_dock()
         if dock is None:
@@ -443,7 +443,7 @@ class FluencyForgeWindow(QWidget):
         dock.raise_()
 
     def _on_close_clicked(self) -> None:
-        """Close (hide) the FluencyForge dock."""
+        """Close (hide) the LanguageForge dock."""
 
         dock = self._find_dock()
         if dock is None:

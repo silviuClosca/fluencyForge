@@ -65,7 +65,7 @@ class DashboardView(QWidget):
     # helpers to reach main window and tabs
     def _main_window(self):
         w = self.parent()
-        # Walk up the parents until we find the FluencyForge main window,
+        # Walk up the parents until we find the LanguageForge main window,
         # identified by its tab navigation helpers (e.g. show_goals_tab).
         while w is not None and not hasattr(w, "show_goals_tab"):
             w = w.parent()
@@ -133,12 +133,12 @@ class DashboardView(QWidget):
         # Update all buttons
         for button in self.findChildren(QPushButton):
             if button.objectName() == "dashboard_resource_open_btn":
-                # Compact style for Resources preview Open buttons
+                # Compact style for Resources preview Open buttons, same hover as other buttons
                 button.setStyleSheet(
                     f"QPushButton {{"
                     f"  border: 1px solid {colors.button_border};"
                     f"  border-radius: 4px;"
-                    f"  padding: 2px 8px;"
+                    f"  padding: 2px 10px;"
                     f"  background-color: {colors.button_bg};"
                     f"  color: {colors.button_text};"
                     f"}}"

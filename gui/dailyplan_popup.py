@@ -69,7 +69,7 @@ class DailyPlanPopup(QDialog):
         buttons.addStretch(1)
 
         if self._open_main_callback is not None:
-            self.open_main_button = QPushButton("Open FluencyForge", self)
+            self.open_main_button = QPushButton("Open LanguageForge", self)
             self.open_main_button.clicked.connect(self._on_open_main)
             buttons.addWidget(self.open_main_button)
 
