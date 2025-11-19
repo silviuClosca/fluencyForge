@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..core.themes import ThemeColors
 
 from aqt.qt import (
     QWidget,
@@ -34,6 +37,9 @@ from ..core.models import MonthlyGoals
 class GoalsView(QWidget):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
+        
+        # Theme colors
+        self._theme_colors: Optional['ThemeColors'] = None
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -53,6 +59,8 @@ class GoalsView(QWidget):
         top = QHBoxLayout()
         top.addWidget(QLabel("Month"))
         self.month_combo = QComboBox(self)
+        # Prevent Anki's global stylesheet from affecting this combo box
+        self.month_combo.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         top.addWidget(self.month_combo)
         self.show_archived_checkbox = QCheckBox("Show archived months", self)
         top.addWidget(self.show_archived_checkbox)
@@ -84,6 +92,8 @@ class GoalsView(QWidget):
             card = QFrame(self)
             card.setFrameShape(QFrame.Shape.StyledPanel)
             card.setFrameShadow(QFrame.Shadow.Plain)
+            card.setObjectName("goal_card")
+            # Styling will be applied via apply_theme
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(8, 6, 8, 6)
             card_layout.setSpacing(4)
@@ -240,6 +250,14 @@ class GoalsView(QWidget):
 
         months = set(month_to_archived.keys())
         months.add(current)
+        
+        # Add past 12 months to allow viewing/creating goals for previous months
+        from datetime import datetime, timedelta
+        today = datetime.today()
+        for i in range(12):
+            past_month = today - timedelta(days=30 * i)
+            month_str = past_month.strftime("%Y-%m")
+            months.add(month_str)
 
         # Filter out archived months unless explicitly requested.
         if not show_archived:
@@ -312,7 +330,7 @@ class GoalsView(QWidget):
                     subtasks_done[s_idx] if s_idx < len(subtasks_done) else False
                 )
                 circle = CircleIndicator(
-                    initial_done, size=14, parent=self.subtasks_containers[i]
+                    initial_done, size=14, parent=self.subtasks_containers[i], theme_colors=self._theme_colors
                 )
                 chk = QCheckBox(self.subtasks_containers[i])
                 chk.setTristate(False)
@@ -325,11 +343,10 @@ class GoalsView(QWidget):
                 edit = QLineEdit(self.subtasks_containers[i])
                 edit.setText(str(s_text))
 
-                delete_btn = QPushButton(self.subtasks_containers[i])
-                delete_btn.setFixedWidth(24)
-                delete_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon))
-                delete_btn.setStyleSheet("QPushButton { border: none; }")
+                delete_btn = QPushButton("✕", self.subtasks_containers[i])
+                delete_btn.setFixedSize(24, 24)
                 delete_btn.setToolTip("Delete subtask")
+                delete_btn.setObjectName("subtask_delete_btn")
 
                 row.addWidget(circle)
                 row.addWidget(chk)
@@ -593,7 +610,7 @@ class GoalsView(QWidget):
         layout = self.subtasks_layouts[goal_index]
         row = QHBoxLayout()
 
-        circle = CircleIndicator(False, size=14, parent=self.subtasks_containers[goal_index])
+        circle = CircleIndicator(False, size=14, parent=self.subtasks_containers[goal_index], theme_colors=self._theme_colors)
         chk = QCheckBox(self.subtasks_containers[goal_index])
         chk.setTristate(False)
         chk.setChecked(False)
@@ -605,11 +622,10 @@ class GoalsView(QWidget):
         edit = QLineEdit(self.subtasks_containers[goal_index])
         edit.setPlaceholderText("New subtask…")
 
-        delete_btn = QPushButton(self.subtasks_containers[goal_index])
-        delete_btn.setFixedWidth(24)
-        delete_btn.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TrashIcon))
-        delete_btn.setStyleSheet("QPushButton { border: none; }")
+        delete_btn = QPushButton("✕", self.subtasks_containers[goal_index])
+        delete_btn.setFixedSize(24, 24)
         delete_btn.setToolTip("Delete subtask")
+        delete_btn.setObjectName("subtask_delete_btn")
 
         row.addWidget(circle)
         row.addWidget(chk)
@@ -712,3 +728,220 @@ class GoalsView(QWidget):
         save_month_goals(goals, source="goals_view_clear")
         self._update_progress_label()
         self._update_card_styles()
+
+    def apply_theme(self, colors: 'ThemeColors') -> None:
+        """Apply theme colors to goals view components."""
+        self._theme_colors = colors
+        
+        # Update month combo styling
+        if hasattr(self, 'month_combo'):
+            self.month_combo.setStyleSheet(
+                f"QComboBox {{"
+                f"  border: 1px solid {colors.input_border};"
+                f"  border-radius: 4px;"
+                f"  padding: 2px 6px;"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"}}"
+                f"QComboBox:hover {{"
+                f"  border-color: {colors.input_focus_border};"
+                f"}}"
+                f"QComboBox:focus {{"
+                f"  border-color: {colors.input_focus_border};"
+                f"}}"
+                f"QComboBox QAbstractItemView {{"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"  border: 1px solid {colors.input_border};"
+                f"  selection-background-color: {colors.accent};"
+                f"  selection-color: {colors.background};"
+                f"}}"
+                f"QComboBox QAbstractItemView::item {{"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"  padding: 4px;"
+                f"}}"
+                f"QComboBox QAbstractItemView::item:selected {{"
+                f"  background-color: {colors.accent};"
+                f"  color: {colors.background};"
+                f"}}"
+            )
+            # Also set the view directly using palette (higher priority than stylesheet)
+            view = self.month_combo.view()
+            if view:
+                from aqt.qt import QPalette, QColor
+                palette = view.palette()
+                palette.setColor(QPalette.ColorRole.Base, QColor(colors.input_bg))
+                palette.setColor(QPalette.ColorRole.Text, QColor(colors.input_text))
+                palette.setColor(QPalette.ColorRole.Window, QColor(colors.input_bg))
+                palette.setColor(QPalette.ColorRole.WindowText, QColor(colors.input_text))
+                palette.setColor(QPalette.ColorRole.Highlight, QColor(colors.accent))
+                palette.setColor(QPalette.ColorRole.HighlightedText, QColor(colors.background))
+                view.setPalette(palette)
+                view.setStyleSheet(
+                    f"QAbstractItemView {{"
+                    f"  background-color: {colors.input_bg};"
+                    f"  color: {colors.input_text};"
+                    f"  border: 1px solid {colors.input_border};"
+                    f"  selection-background-color: {colors.accent};"
+                    f"  selection-color: {colors.background};"
+                    f"}}"
+                )
+        
+        # Update archived banner styling
+        if hasattr(self, 'banner_frame'):
+            self.banner_frame.setStyleSheet(
+                f"QFrame {{"
+                f"  background-color: {colors.goals_archived_banner_bg};"
+                f"  border-radius: 4px;"
+                f"  border: 1px solid {colors.goals_archived_banner_text};"
+                f"}}"
+            )
+            if hasattr(self, 'banner_label'):
+                self.banner_label.setStyleSheet(
+                    f"QLabel {{ color: {colors.goals_archived_banner_text}; }}"
+                )
+        
+        # Update all goal cards
+        for card in self.findChildren(QFrame, "goal_card"):
+            card.setStyleSheet(
+                f"QFrame#goal_card {{"
+                f"  background-color: {colors.goals_card_bg};"
+                f"  border-radius: 6px;"
+                f"  border: 1px solid {colors.goals_card_border};"
+                f"}}"
+            )
+        
+        # Update all input fields (goal text, reflections)
+        for edit in self.findChildren(QLineEdit):
+            edit.setStyleSheet(
+                f"QLineEdit {{"
+                f"  border: 1px solid {colors.input_border};"
+                f"  border-radius: 3px;"
+                f"  padding: 3px 6px;"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"}}"
+                f"QLineEdit:focus {{"
+                f"  border-color: {colors.input_focus_border};"
+                f"}}"
+            )
+        
+        for edit in self.findChildren(QTextEdit):
+            edit.setStyleSheet(
+                f"QTextEdit {{"
+                f"  border: 1px solid {colors.input_border};"
+                f"  border-radius: 3px;"
+                f"  padding: 3px 6px;"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"}}"
+                f"QTextEdit:focus {{"
+                f"  border-color: {colors.input_focus_border};"
+                f"}}"
+            )
+        
+        # Update all combo boxes (categories)
+        for combo in self.findChildren(QComboBox):
+            combo.setStyleSheet(
+                f"QComboBox {{"
+                f"  border: 1px solid {colors.input_border};"
+                f"  border-radius: 3px;"
+                f"  padding: 2px 6px;"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"}}"
+                f"QComboBox:hover {{"
+                f"  border-color: {colors.input_focus_border};"
+                f"}}"
+                f"QComboBox:focus {{"
+                f"  border-color: {colors.input_focus_border};"
+                f"}}"
+                f"QComboBox QAbstractItemView {{"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"  border: 1px solid {colors.input_border};"
+                f"  selection-background-color: {colors.accent};"
+                f"  selection-color: {colors.background};"
+                f"}}"
+                f"QComboBox QAbstractItemView::item {{"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"  padding: 4px;"
+                f"}}"
+                f"QComboBox QAbstractItemView::item:selected {{"
+                f"  background-color: {colors.accent};"
+                f"  color: {colors.background};"
+                f"}}"
+            )
+        
+        # Update all buttons
+        for button in self.findChildren(QPushButton):
+            if button.objectName() == "subtask_delete_btn":
+                # Style X delete buttons
+                button.setStyleSheet(
+                    f"QPushButton {{"
+                    f"  border: 1px solid #DC2626;"
+                    f"  border-radius: 3px;"
+                    f"  background-color: transparent;"
+                    f"  color: #DC2626;"
+                    f"  font-size: 16px;"
+                    f"}}"
+                    f"QPushButton:hover {{"
+                    f"  background-color: rgba(220, 38, 38, 0.12);"
+                    f"  color: #B91C1C;"
+                    f"  border-color: #B91C1C;"
+                    f"}}"
+                )
+            else:
+                # Regular buttons
+                button.setStyleSheet(
+                    f"QPushButton {{"
+                    f"  border: 1px solid {colors.button_border};"
+                    f"  border-radius: 4px;"
+                    f"  padding: 4px 10px;"
+                    f"  background-color: {colors.button_bg};"
+                    f"  color: {colors.button_text};"
+                    f"}}"
+                    f"QPushButton:hover {{"
+                    f"  background-color: {colors.button_hover_bg};"
+                    f"  border-color: {colors.button_hover_border};"
+                    f"}}"
+                )
+        
+        # Update expand/collapse toggle buttons
+        for toggle in self.findChildren(QToolButton):
+            toggle.setStyleSheet(
+                f"QToolButton {{"
+                f"  border: none;"
+                f"  background-color: transparent;"
+                f"  color: {colors.text};"
+                f"}}"
+                f"QToolButton:hover {{"
+                f"  background-color: {colors.button_hover_bg};"
+                f"}}"
+            )
+        
+        # Update "Show archived months" checkbox
+        if hasattr(self, 'show_archived_checkbox'):
+            self.show_archived_checkbox.setStyleSheet(
+                f"QCheckBox {{"
+                f"  color: {colors.text};"
+                f"}}"
+                f"QCheckBox::indicator {{"
+                f"  width: 16px;"
+                f"  height: 16px;"
+                f"  border: 1px solid {colors.input_border};"
+                f"  border-radius: 3px;"
+                f"  background-color: {colors.input_bg};"
+                f"}}"
+                f"QCheckBox::indicator:checked {{"
+                f"  background-color: {colors.accent};"
+                f"  border-color: {colors.accent};"
+                f"}}"
+            )
+        
+        # Update all circle indicators
+        for circle in self.findChildren(CircleIndicator):
+            if hasattr(circle, 'set_theme_colors'):
+                circle.set_theme_colors(colors)

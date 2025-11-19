@@ -13,13 +13,12 @@ _SETTINGS_FILENAME = "settings.json"
 class Settings:
     """User settings for FluencyForge.
 
-    Custom visual themes have been removed; we now rely entirely on Anki's
-    own light/dark theme. Only font sizing and startup behavior remain
-    configurable here.
+    Includes theme selection, font sizing, and startup behavior.
     """
 
-    font_size: str = "medium"  # small, medium, large
+    font_size: str = "medium"  # small, medium, large, or numeric point size
     open_on_startup: bool = False
+    theme: str = "anki_auto"  # anki_auto, light, zen, high_contrast, japanese_pastel
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

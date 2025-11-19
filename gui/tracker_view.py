@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from typing import Optional, Dict, List, TYPE_CHECKING
 from calendar import monthrange
-from typing import Optional
+
+if TYPE_CHECKING:
+    from ..core.themes import ThemeColors
 
 from aqt.qt import (
     QWidget,
@@ -26,6 +29,9 @@ class TrackerView(QWidget):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
+        
+        # Theme colors
+        self._theme_colors: Optional['ThemeColors'] = None
 
         self.activity: DailyActivity = load_daily_activity()
 
@@ -50,6 +56,8 @@ class TrackerView(QWidget):
 
         header_layout.addWidget(QLabel("Month", header))
         self.month_combo = QComboBox(header)
+        # Prevent Anki's global stylesheet from affecting this combo box
+        self.month_combo.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         # Keep the month selector compact: size to its text + arrow only.
         self.month_combo.setSizeAdjustPolicy(
             QComboBox.SizeAdjustPolicy.AdjustToContents
@@ -83,24 +91,19 @@ class TrackerView(QWidget):
         # summary card on the side.
         side_column = QVBoxLayout()
 
-        stats_card = QFrame(self)
-        stats_card.setFrameShape(QFrame.Shape.NoFrame)
-        stats_card.setFrameShadow(QFrame.Shadow.Plain)
-        stats_card.setStyleSheet(
-            "QFrame {"
-            "  background-color: rgba(148, 163, 184, 30);"  # soft slate tint
-            "  border-radius: 8px;"
-            "  border: 1px solid rgba(15, 23, 42, 40);"      # subtle border/shadow
-            "}"
-        )
-        stats_layout = QVBoxLayout(stats_card)
+        self.stats_card = QFrame(self)
+        self.stats_card.setFrameShape(QFrame.Shape.NoFrame)
+        self.stats_card.setFrameShadow(QFrame.Shadow.Plain)
+        self.stats_card.setObjectName("stats_card")
+        # Styling will be applied via apply_theme
+        stats_layout = QVBoxLayout(self.stats_card)
         stats_layout.setContentsMargins(2, 2, 2, 2)
         stats_layout.setSpacing(2)
 
-        self.month_stats_label = QLabel("", stats_card)
+        self.month_stats_label = QLabel("", self.stats_card)
         stats_layout.addWidget(self.month_stats_label)
 
-        side_column.addWidget(stats_card)
+        side_column.addWidget(self.stats_card)
         side_column.addStretch(1)
 
         content_row.addLayout(side_column)
@@ -191,13 +194,8 @@ class TrackerView(QWidget):
             week_card = QFrame(self.grid_container)
             week_card.setFrameShape(QFrame.Shape.NoFrame)
             week_card.setFrameShadow(QFrame.Shadow.Plain)
-            week_card.setStyleSheet(
-                "QFrame {"
-                "  background-color: rgba(148, 163, 184, 10);"
-                "  border-radius: 6px;"
-                "  border: 1px solid rgba(148, 163, 184, 80);"
-                "}"
-            )
+            week_card.setObjectName("week_card")
+            # Styling will be applied via apply_theme
             week_layout = QGridLayout(week_card)
             week_layout.setContentsMargins(8, 1, 8, 1)
             week_layout.setHorizontalSpacing(12)
@@ -226,13 +224,20 @@ class TrackerView(QWidget):
                         and month_num == today.month
                         and day_num == today.day
                     ):
+                        # Use theme colors for today's highlight
+                        if self._theme_colors:
+                            border_color = self._theme_colors.accent
+                            bg_color = self._theme_colors.tracker_today_bg
+                        else:
+                            border_color = "#7CC9A3"
+                            bg_color = "rgba(190, 234, 211, 80)"
                         header.setStyleSheet(
-                            "QLabel {"
-                            " border: 1px solid #7CC9A3;"
-                            " border-radius: 8px;"
-                            " padding: 1px 4px;"
-                            " background-color: rgba(190, 234, 211, 80);"
-                            " }"
+                            f"QLabel {{"
+                            f" border: 1px solid {border_color};"
+                            f" border-radius: 8px;"
+                            f" padding: 1px 4px;"
+                            f" background-color: {bg_color};"
+                            f"}}"
                         )
                     else:
                         # All other days stay clean text-only.
@@ -280,7 +285,7 @@ class TrackerView(QWidget):
                     # Slightly smaller circles so the monthly rows sit tighter
                     # together vertically.
                     indicator = CircleIndicator(
-                        done, size=16, parent=week_card
+                        done, size=16, parent=week_card, theme_colors=self._theme_colors
                     )
 
                     def make_handler(
@@ -359,3 +364,66 @@ class TrackerView(QWidget):
             self.stack.setCurrentIndex(0)
             self.mode_label.setText("Daily Tracker – Weekly View")
             self.toggle_view_btn.setText("Switch to Monthly View")
+
+    def apply_theme(self, colors: 'ThemeColors') -> None:
+        """Apply theme colors to tracker view components."""
+        self._theme_colors = colors
+        
+        # Update month combo styling
+        if hasattr(self, 'month_combo'):
+            self.month_combo.setStyleSheet(
+                f"QComboBox {{"
+                f"  border: 1px solid {colors.input_border};"
+                f"  border-radius: 4px;"
+                f"  padding: 2px 6px;"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"}}"
+                f"QComboBox:hover {{"
+                f"  background-color: {colors.button_hover_bg};"
+                f"}}"
+                f"QComboBox:focus {{"
+                f"  border-color: {colors.input_focus_border};"
+                f"}}"
+                f"QComboBox QAbstractItemView {{"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"  border: 1px solid {colors.input_border};"
+                f"  selection-background-color: {colors.accent};"
+                f"  selection-color: {colors.background};"
+                f"}}"
+                f"QComboBox QAbstractItemView::item {{"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"  padding: 4px;"
+                f"}}"
+                f"QComboBox QAbstractItemView::item:selected {{"
+                f"  background-color: {colors.accent};"
+                f"  color: {colors.background};"
+                f"}}"
+            )
+        
+        # Update stats card styling
+        if hasattr(self, 'stats_card'):
+            self.stats_card.setStyleSheet(
+                f"QFrame#stats_card {{"
+                f"  background-color: {colors.tracker_stats_bg};"
+                f"  border-radius: 8px;"
+                f"  border: 1px solid {colors.tracker_stats_border};"
+                f"}}"
+            )
+        
+        # Update all week cards
+        for week_card in self.findChildren(QFrame, "week_card"):
+            week_card.setStyleSheet(
+                f"QFrame#week_card {{"
+                f"  background-color: {colors.tracker_week_card_bg};"
+                f"  border-radius: 6px;"
+                f"  border: 1px solid {colors.tracker_week_card_border};"
+                f"}}"
+            )
+        
+        # Update all circle indicators
+        for circle in self.findChildren(CircleIndicator):
+            if hasattr(circle, 'set_theme_colors'):
+                circle.set_theme_colors(colors)

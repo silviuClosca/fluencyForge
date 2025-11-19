@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, TYPE_CHECKING
 import webbrowser
+
+if TYPE_CHECKING:
+    from ..core.themes import ThemeColors
 
 from aqt.qt import (
     QWidget,
@@ -42,6 +45,9 @@ class DashboardView(QWidget):
         # Archive past goals once per session when the dashboard is created.
         auto_archive_past_goals(get_current_month_id())
 
+        # Theme colors (will be set by main window)
+        self._theme_colors: Optional['ThemeColors'] = None
+
         layout = QVBoxLayout(self)
         # Remove outer horizontal margins so the dashboard cards sit flush with
         # the dock content area (no grey gutters on the left/right).
@@ -75,6 +81,7 @@ class DashboardView(QWidget):
             frame.setFrameShadow(QFrame.Plain)  # type: ignore[attr-defined]
         # Remove the box border and give the section a subtle rounded corner
         # background so the cards feel softer.
+        # Styling will be applied via apply_theme
         frame.setStyleSheet(
             "border: none; border-radius: 8px; background-color: transparent;"
         )
@@ -94,10 +101,134 @@ class DashboardView(QWidget):
         except AttributeError:
             underline.setFrameShape(QFrame.HLine)  # type: ignore[attr-defined]
             underline.setFrameShadow(QFrame.Plain)  # type: ignore[attr-defined]
-        underline.setStyleSheet("color: #d0d7de; background-color: #d0d7de;")
+        # Store underline for theme updates
+        underline.setObjectName("section_underline")
         underline.setFixedHeight(1)
         v.addWidget(underline)
+        self._update_underline_color(underline)
         return frame
+
+    def _update_underline_color(self, underline: QFrame) -> None:
+        """Update underline color based on current theme."""
+        if self._theme_colors:
+            color = self._theme_colors.divider
+        else:
+            color = "#d0d7de"
+        underline.setStyleSheet(f"color: {color}; background-color: {color};")
+
+    def apply_theme(self, colors: 'ThemeColors') -> None:
+        """Apply theme colors to dashboard components."""
+        self._theme_colors = colors
+        
+        # Update all section underlines
+        for underline in self.findChildren(QFrame, "section_underline"):
+            self._update_underline_color(underline)
+        
+        # Update embedded radar view
+        radar_widgets = self.findChildren(RadarView)
+        for radar in radar_widgets:
+            if hasattr(radar, 'apply_theme'):
+                radar.apply_theme(colors)
+        
+        # Update all buttons
+        for button in self.findChildren(QPushButton):
+            if button.objectName() == "dashboard_resource_open_btn":
+                # Compact style for Resources preview Open buttons
+                button.setStyleSheet(
+                    f"QPushButton {{"
+                    f"  border: 1px solid {colors.button_border};"
+                    f"  border-radius: 4px;"
+                    f"  padding: 2px 8px;"
+                    f"  background-color: {colors.button_bg};"
+                    f"  color: {colors.button_text};"
+                    f"}}"
+                    f"QPushButton:hover {{"
+                    f"  background-color: {colors.button_hover_bg};"
+                    f"  border-color: {colors.button_hover_border};"
+                    f"}}"
+                )
+            else:
+                # Regular dashboard buttons
+                button.setStyleSheet(
+                    f"QPushButton {{"
+                    f"  border: 1px solid {colors.button_border};"
+                    f"  border-radius: 4px;"
+                    f"  padding: 4px 10px;"
+                    f"  background-color: {colors.button_bg};"
+                    f"  color: {colors.button_text};"
+                    f"}}"
+                    f"QPushButton:hover {{"
+                    f"  background-color: {colors.button_hover_bg};"
+                    f"  border-color: {colors.button_hover_border};"
+                    f"}}"
+                )
+        
+        # Update all input fields
+        for edit in self.findChildren(QLineEdit):
+            edit.setStyleSheet(
+                f"QLineEdit {{"
+                f"  border: 1px solid {colors.input_border};"
+                f"  border-radius: 3px;"
+                f"  padding: 3px 6px;"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"}}"
+                f"QLineEdit:focus {{"
+                f"  border-color: {colors.input_focus_border};"
+                f"}}"
+            )
+        
+        # Update all checkboxes (for daily plan tasks)
+        for checkbox in self.findChildren(QCheckBox):
+            checkbox.setStyleSheet(
+                f"QCheckBox {{"
+                f"  color: {colors.text};"
+                f"}}"
+                f"QCheckBox::indicator {{"
+                f"  width: 16px;"
+                f"  height: 16px;"
+                f"  border: 1px solid {colors.input_border};"
+                f"  border-radius: 3px;"
+                f"  background-color: {colors.input_bg};"
+                f"}}"
+                f"QCheckBox::indicator:checked {{"
+                f"  background-color: {colors.accent};"
+                f"  border-color: {colors.accent};"
+                f"}}"
+            )
+        
+        # Update toolbar-style QToolButtons (e.g. This Month's Goals pencil buttons)
+        for tool in self.findChildren(QToolButton):
+            if tool.objectName() == "dashboard_goal_pencil_btn":
+                tool.setStyleSheet(
+                    f"QToolButton {{"
+                    f"  border: 1px solid {colors.button_border};"
+                    f"  border-radius: 4px;"
+                    f"  padding: 2px 6px;"
+                    f"  background-color: {colors.button_bg};"
+                    f"  color: {colors.text_secondary};"
+                    f"}}"
+                    f"QToolButton:hover {{"
+                    f"  background-color: {colors.button_hover_bg};"
+                    f"  border-color: {colors.button_hover_border};"
+                    f"  color: {colors.button_text};"
+                    f"}}"
+                )
+
+        # Update today's day label circle in weekly activity
+        if hasattr(self, '_today_day_label') and self._today_day_label:
+            self._today_day_label.setStyleSheet(
+                f"QLabel {{"
+                f"  border: 1px solid {colors.accent};"
+                f"  border-radius: 10px;"
+                f"  padding: 1px 4px;"
+                f"}}"
+            )
+        
+        # Update all circle indicators
+        for circle in self.findChildren(CircleIndicator):
+            if hasattr(circle, 'set_theme_colors'):
+                circle.set_theme_colors(colors)
 
     def refresh_week_from_storage(self) -> None:
         """Reload weekly activity from storage into the dashboard preview.
@@ -192,6 +323,7 @@ class DashboardView(QWidget):
 
         # Day headers, highlight today's weekday by drawing a circle around it.
         weekday_index = today.weekday()  # Monday=0 .. Sunday=6
+        self._today_day_label = None  # Store reference for theme updates
         for idx, label in enumerate(["M", "T", "W", "T", "F", "S", "S"]):
             col = idx + 1
             day_label = QLabel(label)
@@ -199,13 +331,9 @@ class DashboardView(QWidget):
                 Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
             )
             if idx == weekday_index:
-                day_label.setStyleSheet(
-                    "QLabel {"
-                    " border: 1px solid #7CC9A3;"
-                    " border-radius: 10px;"
-                    " padding: 1px 4px;"
-                    " }"
-                )
+                # Store reference to update styling in apply_theme
+                self._today_day_label = day_label
+                day_label.setObjectName("today_day_label")
             grid.addWidget(day_label, 0, col)
 
         # Daily Plan header + today's date aligned with day headers (same row, right side).
@@ -439,6 +567,8 @@ class DashboardView(QWidget):
             pencil = QToolButton(card)
             pencil.setText("✎")
             pencil.setToolTip("Open full Goals view for this goal")
+            # Tag for themed styling in apply_theme
+            pencil.setObjectName("dashboard_goal_pencil_btn")
             pencil.clicked.connect(lambda _=False, i=idx: self._open_goal_in_goals_tab(i))
             row.addWidget(pencil)
 
@@ -583,12 +713,10 @@ class DashboardView(QWidget):
             row.addWidget(name_label, 1)
 
             btn = QPushButton("Open", self)
+            # Tag for themed styling in apply_theme
+            btn.setObjectName("dashboard_resource_open_btn")
             if main_font is not None:
                 btn.setFont(main_font)
-            btn.setStyleSheet(
-                "QPushButton { border: 1px solid #d0d7de; border-radius: 4px; padding: 2px 8px; }"
-                "QPushButton:hover { background-color: rgba(255, 255, 255, 40); }"
-            )
             btn.clicked.connect(lambda _=False, i=idx: self._go_resource(i))
             row.addWidget(btn)
 

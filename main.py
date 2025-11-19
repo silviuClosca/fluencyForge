@@ -62,14 +62,23 @@ def init_addon() -> None:
 
     gui_hooks.main_window_did_init.append(_maybe_show_on_startup)
 
-    # When Anki's theme changes (light <-> dark), update FluencyForge tab
-    # styling immediately so backgrounds/text reflect the new palette.
+    # When Anki's theme changes (light <-> dark), update FluencyForge theme
+    # immediately if using "anki_auto" mode.
     try:
         if hasattr(gui_hooks, "theme_did_change"):
             def _on_theme_changed() -> None:
                 global _ff_widget
-                if _ff_widget is not None and hasattr(_ff_widget, "_apply_tab_styles"):
-                    _ff_widget._apply_tab_styles()  # type: ignore[attr-defined]
+                if _ff_widget is not None:
+                    # Reload settings to check if we're in anki_auto mode
+                    settings = load_settings()
+                    if settings.theme == "anki_auto":
+                        # Update theme colors and reapply
+                        if hasattr(_ff_widget, "_get_current_theme_colors"):
+                            _ff_widget._current_theme_colors = _ff_widget._get_current_theme_colors()  # type: ignore[attr-defined]
+                        if hasattr(_ff_widget, "_apply_tab_styles"):
+                            _ff_widget._apply_tab_styles()  # type: ignore[attr-defined]
+                        if hasattr(_ff_widget, "_apply_theme_to_all_views"):
+                            _ff_widget._apply_theme_to_all_views()  # type: ignore[attr-defined]
 
             gui_hooks.theme_did_change.append(_on_theme_changed)  # type: ignore[attr-defined]
     except Exception:

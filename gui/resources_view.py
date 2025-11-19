@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import uuid
 import webbrowser
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..core.themes import ThemeColors
 
 from aqt import mw
 from aqt.qt import (
@@ -28,9 +31,10 @@ from ..core.models import ResourceItem
 
 
 class ResourceDialog(QDialog):
-    def __init__(self, parent: Optional[QWidget] = None, item: Optional[ResourceItem] = None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None, item: Optional[ResourceItem] = None, theme_colors: Optional['ThemeColors'] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Resource")
+        self._theme_colors = theme_colors
 
         layout = QFormLayout(self)
 
@@ -89,6 +93,94 @@ class ResourceDialog(QDialog):
             self.deck_combo.setEditText(item.deck_name or "")
             if item.tags:
                 self.tags_edit.setText(", ".join(tag for tag in item.tags if tag.strip()))
+        
+        # Apply theme styling
+        if self._theme_colors:
+            self._apply_theme()
+
+    def _apply_theme(self) -> None:
+        """Apply theme colors to dialog components."""
+        if not self._theme_colors:
+            return
+        
+        colors = self._theme_colors
+        
+        # Style the dialog background
+        self.setStyleSheet(
+            f"QDialog {{"
+            f"  background-color: {colors.background};"
+            f"  color: {colors.text};"
+            f"}}"
+            f"QLabel {{"
+            f"  color: {colors.text};"
+            f"}}"
+            f"QLineEdit {{"
+            f"  border: 1px solid {colors.input_border};"
+            f"  border-radius: 3px;"
+            f"  padding: 4px 8px;"
+            f"  background-color: {colors.input_bg};"
+            f"  color: {colors.input_text};"
+            f"}}"
+            f"QLineEdit:focus {{"
+            f"  border-color: {colors.input_focus_border};"
+            f"}}"
+            f"QTextEdit {{"
+            f"  border: 1px solid {colors.input_border};"
+            f"  border-radius: 3px;"
+            f"  padding: 4px 8px;"
+            f"  background-color: {colors.input_bg};"
+            f"  color: {colors.input_text};"
+            f"}}"
+            f"QTextEdit:focus {{"
+            f"  border-color: {colors.input_focus_border};"
+            f"}}"
+            f"QComboBox {{"
+            f"  border: 1px solid {colors.input_border};"
+            f"  border-radius: 3px;"
+            f"  padding: 4px 8px;"
+            f"  background-color: {colors.input_bg};"
+            f"  color: {colors.input_text};"
+            f"}}"
+            f"QComboBox:hover {{"
+            f"  border-color: {colors.input_focus_border};"
+            f"}}"
+            f"QComboBox::drop-down {{"
+            f"  border: none;"
+            f"}}"
+            f"QComboBox::down-arrow {{"
+            f"  image: none;"
+            f"  border-left: 4px solid transparent;"
+            f"  border-right: 4px solid transparent;"
+            f"  border-top: 5px solid {colors.text};"
+            f"}}"
+            f"QComboBox QAbstractItemView {{"
+            f"  background-color: {colors.input_bg};"
+            f"  color: {colors.input_text};"
+            f"  border: 1px solid {colors.input_border};"
+            f"  selection-background-color: {colors.accent};"
+            f"  selection-color: {colors.background};"
+            f"}}"
+            f"QComboBox QAbstractItemView::item {{"
+            f"  background-color: {colors.input_bg};"
+            f"  color: {colors.input_text};"
+            f"  padding: 4px;"
+            f"}}"
+            f"QComboBox QAbstractItemView::item:selected {{"
+            f"  background-color: {colors.accent};"
+            f"  color: {colors.background};"
+            f"}}"
+            f"QPushButton {{"
+            f"  border: 1px solid {colors.button_border};"
+            f"  border-radius: 4px;"
+            f"  padding: 6px 12px;"
+            f"  background-color: {colors.button_bg};"
+            f"  color: {colors.button_text};"
+            f"}}"
+            f"QPushButton:hover {{"
+            f"  background-color: {colors.button_hover_bg};"
+            f"  border-color: {colors.button_hover_border};"
+            f"}}"
+        )
 
     def to_item(self) -> ResourceItem:
         item_id = self._item_id or str(uuid.uuid4())
@@ -131,6 +223,9 @@ class ResourcesView(QWidget):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
+        
+        # Theme colors
+        self._theme_colors: Optional['ThemeColors'] = None
 
         layout = QVBoxLayout(self)
 
@@ -284,7 +379,7 @@ class ResourcesView(QWidget):
             self._row_ids.append(item.id)
 
     def _on_add(self) -> None:
-        dialog = ResourceDialog(self)
+        dialog = ResourceDialog(self, theme_colors=self._theme_colors)
         if dialog.exec():
             item = dialog.to_item()
             self.items.append(item)
@@ -306,7 +401,7 @@ class ResourcesView(QWidget):
         if index is None:
             return
         item = self.items[index]
-        dialog = ResourceDialog(self, item)
+        dialog = ResourceDialog(self, item, theme_colors=self._theme_colors)
         if dialog.exec():
             self.items[index] = dialog.to_item()
             save_resources(self.items)
@@ -463,3 +558,63 @@ class ResourcesView(QWidget):
         except Exception:
             # Fail silently if deck cannot be opened.
             return
+
+    def apply_theme(self, colors: 'ThemeColors') -> None:
+        """Apply theme colors to resources view components."""
+        self._theme_colors = colors
+        
+        # Update search input styling
+        if hasattr(self, 'search_edit'):
+            self.search_edit.setStyleSheet(
+                f"QLineEdit {{"
+                f"  border: 1px solid {colors.input_border};"
+                f"  border-radius: 4px;"
+                f"  padding: 4px 8px;"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"}}"
+                f"QLineEdit:focus {{"
+                f"  border-color: {colors.input_focus_border};"
+                f"}}"
+            )
+        
+        # Update table styling
+        if hasattr(self, 'table'):
+            self.table.setStyleSheet(
+                f"QTableWidget {{"
+                f"  background-color: transparent;"
+                f"  border: none;"
+                f"  color: {colors.text};"
+                f"}}"
+                f"QTableWidget::item {{"
+                f"  border: none;"
+                f"  padding: 4px;"
+                f"}}"
+                f"QTableWidget::item:selected {{"
+                f"  background-color: {colors.accent};"
+                f"  color: {colors.tab_bg};"
+                f"}}"
+                f"QHeaderView::section {{"
+                f"  background-color: {colors.resource_table_header_bg};"
+                f"  border: none;"
+                f"  padding: 4px;"
+                f"  color: {colors.text_secondary};"
+                f"  font-weight: bold;"
+                f"}}"
+            )
+        
+        # Update buttons
+        for button in self.findChildren(QPushButton):
+            button.setStyleSheet(
+                f"QPushButton {{"
+                f"  border: 1px solid {colors.button_border};"
+                f"  border-radius: 4px;"
+                f"  padding: 6px 12px;"
+                f"  background-color: {colors.button_bg};"
+                f"  color: {colors.button_text};"
+                f"}}"
+                f"QPushButton:hover {{"
+                f"  background-color: {colors.button_hover_bg};"
+                f"  border-color: {colors.button_hover_border};"
+                f"}}"
+            )

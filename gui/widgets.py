@@ -1,18 +1,23 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from aqt.qt import QWidget, QSize, QPainter, QColor, QPen, Qt, QCursor, pyqtSignal
+
+if TYPE_CHECKING:
+    from ..core.themes import ThemeColors
 
 
 class CircleIndicator(QWidget):
     clicked = pyqtSignal()
 
-    def __init__(self, completed: bool, size: int = 18, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, completed: bool, size: int = 18, parent: Optional[QWidget] = None,
+                 theme_colors: Optional['ThemeColors'] = None) -> None:
         super().__init__(parent)
         self._completed = completed
         self._size = size
         self._hover = False
+        self._theme_colors = theme_colors
         self.setMinimumSize(size, size)
         self.setMaximumSize(size, size)
         # Make it clear this is interactive wherever it is used.
@@ -22,6 +27,11 @@ class CircleIndicator(QWidget):
         if self._completed != completed:
             self._completed = completed
             self.update()
+
+    def set_theme_colors(self, colors: 'ThemeColors') -> None:
+        """Update the theme colors and repaint."""
+        self._theme_colors = colors
+        self.update()
 
     def sizeHint(self) -> QSize:  # type: ignore[override]
         return QSize(self._size, self._size)
@@ -34,18 +44,24 @@ class CircleIndicator(QWidget):
             hint = QPainter.Antialiasing  # type: ignore[attr-defined]
         painter.setRenderHint(hint)
 
-        # Ring colors: light for incomplete, stronger green for completed.
-        empty_ring_color = QColor("#BEEAD3")
-        completed_ring_color = QColor("#7CC9A3")
+        # Ring colors: use theme colors if available, otherwise fallback to defaults
+        if self._theme_colors:
+            empty_ring_color = QColor(self._theme_colors.circle_empty)
+            completed_ring_color = QColor(self._theme_colors.circle_complete)
+            hover_bg_color = QColor(self._theme_colors.circle_hover_bg)
+        else:
+            # Fallback colors
+            empty_ring_color = QColor("#BEEAD3")
+            completed_ring_color = QColor("#7CC9A3")
+            hover_bg_color = QColor("#BEEAD3")
 
         rect = self.rect().adjusted(1, 1, -1, -1)
 
         # Subtle hover background so the circle responds visually to the mouse.
         if self._hover:
-            # Soft light green highlight under both states.
-            hover_bg = QColor("#BEEAD3")
-            hover_bg.setAlpha(120)
-            painter.setBrush(hover_bg)
+            # Soft highlight under both states.
+            hover_bg_color.setAlpha(120)
+            painter.setBrush(hover_bg_color)
         else:
             painter.setBrush(QColor(0, 0, 0, 0))
 
@@ -57,10 +73,13 @@ class CircleIndicator(QWidget):
         painter.setPen(pen)
         painter.drawEllipse(rect)
 
-        # Draw a green checkmark when completed
+        # Draw a checkmark when completed
         if self._completed:
-            # Use the original green for the checkmark so it stays readable.
-            check_color = QColor("#7CC9A3")
+            # Use theme color for checkmark, fallback to green
+            if self._theme_colors:
+                check_color = QColor(self._theme_colors.circle_complete)
+            else:
+                check_color = QColor("#7CC9A3")
             pen = QPen(check_color)
             pen.setWidth(2)
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)

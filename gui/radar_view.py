@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..core.themes import ThemeColors
 
 from aqt.qt import (
     QWidget,
@@ -106,6 +109,9 @@ class InteractiveRadarWidget(QWidget):
         self._radius = 0.0
         self._hover_axis: Optional[int] = None
         self._hover_value: Optional[float] = None
+        
+        # Theme colors
+        self._theme_colors: Optional['ThemeColors'] = None
 
         self.setMouseTracking(True)
 
@@ -144,6 +150,11 @@ class InteractiveRadarWidget(QWidget):
             self.prev_skill_values = new_prev
         self.update()
 
+    def set_theme_colors(self, colors: 'ThemeColors') -> None:
+        """Update theme colors and repaint."""
+        self._theme_colors = colors
+        self.update()
+
     # drawing --------------------------------------------------------
     def paintEvent(self, event) -> None:  # type: ignore[override]
         from math import cos, sin, pi
@@ -167,9 +178,13 @@ class InteractiveRadarWidget(QWidget):
         max_value = 5.0
         axes = len(self.skills)
 
-        # axes
-        base_pen = QPen(QColor(180, 180, 180))
-        hover_pen = QPen(QColor(220, 220, 220))
+        # axes - use theme colors if available
+        if self._theme_colors:
+            base_pen = QPen(QColor(self._theme_colors.radar_axes))
+            hover_pen = QPen(QColor(self._theme_colors.radar_axes_hover))
+        else:
+            base_pen = QPen(QColor(180, 180, 180))
+            hover_pen = QPen(QColor(220, 220, 220))
         # Emojis for the four skills (same order as self.skills)
         axis_emojis = ["📖", "🎧", "🗣️", "✍️"]
         arrow_map = {"up": "↑", "down": "↓", "same": "="}
@@ -198,11 +213,17 @@ class InteractiveRadarWidget(QWidget):
 
                 if hovered_step is not None and step == hovered_step:
                     # Highlighted dot
-                    dot_pen = QPen(QColor(220, 220, 220))
+                    if self._theme_colors:
+                        dot_pen = QPen(QColor(self._theme_colors.radar_dots_hover))
+                    else:
+                        dot_pen = QPen(QColor(220, 220, 220))
                     painter.setPen(dot_pen)
                     painter.drawEllipse(QPointF(sx, sy), 3, 3)
                 else:
-                    dot_pen = QPen(QColor(140, 140, 140))
+                    if self._theme_colors:
+                        dot_pen = QPen(QColor(self._theme_colors.radar_dots))
+                    else:
+                        dot_pen = QPen(QColor(140, 140, 140))
                     painter.setPen(dot_pen)
                     painter.drawEllipse(QPointF(sx, sy), 2, 2)
 
@@ -250,7 +271,12 @@ class InteractiveRadarWidget(QWidget):
         # Ghost polygon for previous month
         if len(points_prev) >= 3:
             painter.setBrush(Qt.BrushStyle.NoBrush)
-            ghost_pen = QPen(QColor(120, 120, 120, 160), 1)
+            if self._theme_colors:
+                ghost_color = QColor(self._theme_colors.radar_ghost)
+                ghost_color.setAlpha(160)
+                ghost_pen = QPen(ghost_color, 1)
+            else:
+                ghost_pen = QPen(QColor(120, 120, 120, 160), 1)
             ghost_pen.setStyle(Qt.PenStyle.DashLine)
             painter.setPen(ghost_pen)
             for i in range(len(points_prev)):
@@ -260,14 +286,24 @@ class InteractiveRadarWidget(QWidget):
 
         # Filled polygon for current month
         if len(points) >= 3:
-            fill_color = QColor(80, 120, 200, 80)
+            if self._theme_colors:
+                fill_color = QColor(self._theme_colors.radar_polygon)
+                fill_color.setAlpha(80)
+                edge_color = QColor(self._theme_colors.radar_polygon)
+                edge_color.setAlpha(160)
+                outline_color = QColor(self._theme_colors.radar_polygon)
+            else:
+                fill_color = QColor(80, 120, 200, 80)
+                edge_color = QColor(80, 120, 200, 160)
+                outline_color = QColor(80, 120, 200)
+            
             painter.setBrush(fill_color)
-            painter.setPen(QPen(QColor(80, 120, 200, 160), 1))
+            painter.setPen(QPen(edge_color, 1))
             painter.drawPolygon(points)
 
             # Stronger outline on top
             painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.setPen(QPen(QColor(80, 120, 200), 2))
+            painter.setPen(QPen(outline_color, 2))
             for i in range(len(points)):
                 p1 = points[i]
                 p2 = points[(i + 1) % len(points)]
@@ -370,6 +406,8 @@ class RadarView(QWidget):
         self.month_label = QLabel("", self)
         month_row.addWidget(self.month_label)
         self.month_combo = QComboBox(self)
+        # Prevent Anki's global stylesheet from affecting this combo box
+        self.month_combo.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         # Let the combo size itself to its contents instead of stretching.
         self.month_combo.setSizeAdjustPolicy(
             QComboBox.SizeAdjustPolicy.AdjustToContents
@@ -617,3 +655,66 @@ class RadarView(QWidget):
             )
             # No separate reminder row for now.
             self.reminder_label.setText("")
+
+    def apply_theme(self, colors: 'ThemeColors') -> None:
+        """Apply theme colors to radar view components."""
+        # Set background for the entire RadarView
+        self.setStyleSheet(
+            f"RadarView {{"
+            f"  background-color: {colors.background};"
+            f"}}"
+        )
+        
+        # Update the interactive radar chart
+        if hasattr(self.chart, 'set_theme_colors'):
+            self.chart.set_theme_colors(colors)
+        
+        # Update month combo styling
+        if hasattr(self, 'month_combo'):
+            self.month_combo.setStyleSheet(
+                f"QComboBox {{"
+                f"  border: 1px solid {colors.input_border};"
+                f"  border-radius: 4px;"
+                f"  padding: 2px 6px;"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"}}"
+                f"QComboBox:hover {{"
+                f"  background-color: {colors.button_hover_bg};"
+                f"}}"
+                f"QComboBox:focus {{"
+                f"  border-color: {colors.input_focus_border};"
+                f"}}"
+                f"QComboBox QAbstractItemView {{"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"  border: 1px solid {colors.input_border};"
+                f"  selection-background-color: {colors.accent};"
+                f"  selection-color: {colors.background};"
+                f"}}"
+                f"QComboBox QAbstractItemView::item {{"
+                f"  background-color: {colors.input_bg};"
+                f"  color: {colors.input_text};"
+                f"  padding: 4px;"
+                f"}}"
+                f"QComboBox QAbstractItemView::item:selected {{"
+                f"  background-color: {colors.accent};"
+                f"  color: {colors.background};"
+                f"}}"
+            )
+        
+        # Update save button styling
+        if hasattr(self, 'save_button'):
+            self.save_button.setStyleSheet(
+                f"QPushButton {{"
+                f"  border: 1px solid {colors.button_border};"
+                f"  border-radius: 4px;"
+                f"  padding: 4px 10px;"
+                f"  background-color: {colors.button_bg};"
+                f"  color: {colors.button_text};"
+                f"}}"
+                f"QPushButton:hover {{"
+                f"  background-color: {colors.button_hover_bg};"
+                f"  border-color: {colors.button_hover_border};"
+                f"}}"
+            )
