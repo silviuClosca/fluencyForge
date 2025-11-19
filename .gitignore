@@ -1,1 +1,8 @@
 fluencyforge_data/
+
+# Python cache / bytecode
+__pycache__/
+gui/__pycache__/
+core/__pycache__/
+*.py[cod]
+*.pyo
